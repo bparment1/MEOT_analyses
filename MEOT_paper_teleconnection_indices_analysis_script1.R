@@ -33,18 +33,25 @@ infile3<-"MEOT_MSSA_Telcon_indices_08062012.xlsx"                        #LST da
 path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP"
 setwd(path)
 
+out_prefix<-"MEOT_paper_10102012_"
 ## START OF SCRIPT
 
-#Importing SAOD index...
+#Importing SAOD index...Note that it was reformatted from the first file in infile1
 
 #dates <-readLines(paste(path,"/",infile2, sep=""))
-SAODI<-read.table(paste(path,"/",infile1,sep=""),sep=" ", header=FALSE, skip=1) #This does not work
-SAODI<-read.table(paste(path,"/",infile1,sep=""),sep=" ", header=FALSE)
 SAODI<-read.table(paste(path,"/",infile2,sep=""),sep=",", header=TRUE)
 
-s_SAODI <- subset(SAODI, year>1981 & year<2007)
-s_SAODI<- subset(s_SAODI, select=-year)
+#Prepare data to write out in a textfile
+s_SAODI2 <- subset(SAODI, year>1981 & year<2008) #Subset rows that correspond to the conditions
+s_SAODI2<- subset(s_SAODI2, select=-year) #Remove the column year
+in_SAODI2<-as.vector(t(s_SAODI2))   #This transform the data frame into a one colum
+write.table(in_SAODI2,file=paste("SAODI_index_1981_2007",out_prefix,".txt",sep=""),sep=",")
+
+#Prepare data for cross lag correlation analysis and write out results
+s_SAODI <- subset(SAODI, year>1981 & year<2007) #Subset rows that correspond to the conditions
+s_SAODI<- subset(s_SAODI, select=-year) #Remove the column year
 in_SAODI<-as.vector(t(s_SAODI))   #This transform the data frame into a one colum
+write.table(in_SAODI,file="SAODI_index_1981_2006.txt",sep=",")
 
 #Import results from MEOT and MSSA analyses with teleconneciton indices
 dat<-read.xls(infile3, sheet=1)
@@ -74,19 +81,19 @@ plot(d_z2$MEOT1)
 plot(d_z$MEOT1)
 
 acf(d_z2$MEOT1)  #not working??
-pacf(d_z2$MEOT1)
+pacf(d_z2$MEOT1) #not working
 
-acf(d_z$MEOT1)
+acf(d_z$MEOT1) #THis is working, d_z is a zoo object
 pacf(d_z$MEOT1)
 ccf(d_z$MEOT1,d_z$MEI)
 tmp<-ccf(d_z$MEOT1,d_z$MEI)
-lag_m<- -21:21
+lag_m<- -21:21    #Creting a sequence of -21 ro 21
 tmp$lag[,1,1]<-lag_m
 plot(tmp)
 
 # MEOT1 and MEI
 
-tmp<-ccf(d_z$MEOT1,d_z$MEI, lag=13  #Note that ccf does not take
+tmp<-ccf(d_z$MEOT1,d_z$MEI, lag=13 ) #Note that ccf does not take
 lag_m<- -13:13
 tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
 plot(tmp, main="Lag cross-correlation between MEOT1 and MEI")
@@ -100,8 +107,10 @@ absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absol
 tmp<-ccf(d_z$SAOD,d_z$AMM, lag=13)  #Note that ccf does not take
 lag_m<- -13:13
 tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
-plot(tmp, main="Lag cross-correlation between SAOD and AMM")
-                  
+plot(tmp, main="Lag cross-correlation between SAOD and AMM",
+     ylab="Cross-correlation",
+     xlab="Lag (month)", ylim=c(-1,1),xlim=c(-13,13))
+#place the tick tat the right place...                  
 absext <-max(abs(tmp$acf)) # maximum of the extremum
 pos<-match(absext,tmp$acf) #find the position and lag
 absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
@@ -111,10 +120,12 @@ absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absol
 tmp<-ccf(d_z$SAOD,d_z$TSA, lag=13)  #Note that ccf does not take
 lag_m<- -13:13
 tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
-plot(tmp, main="Lag cross-correlation between SAOD and AMM")
+plot(tmp, main="Lag cross-correlation between SAOD and TSA",
+     ylab="Cross-correlation",
+     xlab="Lag (month)", ylim=c(-1,1))
          
 absext <-max(abs(tmp$acf)) # maximum of the extremum
-pos<-match(absext,tmp$acf) #find the position and lag
+pos<-match(absext,tmp$acf) #find the position and lag,... NOT WORKING BECAUSE IT IS NEGATIVE
 absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
 
 # TNA AND SAOD INDICES
@@ -122,7 +133,9 @@ absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absol
 tmp<-ccf(d_z$SAOD,d_z$TNA, lag=13)  #Note that ccf does not take
 lag_m<- -13:13
 tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
-plot(tmp, main="Lag cross-correlation between SAOD and TNA")
+plot(tmp, main="Lag cross-correlation between SAOD and TNA",
+     ylab="Cross-correlation",
+     xlab="Lag (month)", ylim=c(-1,1))
          
 absext <-max(abs(tmp$acf)) # maximum of the extremum
 pos<-match(absext,tmp$acf) #find the position and lag, if NA it means it was negative
@@ -130,4 +143,62 @@ if (is.na(pos)) {
   pos<-match(absext*-1,tmp$acf)
 } 
 absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
+
+# MEOT10/MEOT15 AND SAOD INDICES
+         
+tmp<-ccf(d_z$SAOD,d_z$MEOT10, lag=13)  #Note that ccf does not take
+lag_m<- -13:13
+tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
+plot(tmp, main="SAOD and MEOT10 lag analysis", ylab="Cross-correlation",
+     xlab="Lag (month)", ylim=c(-1,1))
+
+absext <-max(abs(tmp$acf)) # maximum of the extremum
+pos<-match(absext,tmp$acf) #find the position and lag, if NA it means it was negative
+if (is.na(pos)) {
+  pos<-match(absext*-1,tmp$acf)
+} 
+absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
+
+tmp<-ccf(d_z$SAOD,d_z$MEOT15, lag=13)  #Note that ccf does not take
+lag_m<- -13:13
+tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
+plot(tmp, main="SAOD and MEOT15 lag analysis",ylab="Cross-correlation",
+     xlab="Lag (month)", ylim=c(-1,1))
+         
+absext <-max(abs(tmp$acf)) # maximum of the extremum
+pos<-match(absext,tmp$acf) #find the position and lag, if NA it means it was negative
+if (is.na(pos)) {
+pos<-match(absext*-1,tmp$acf)
+} 
+absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
+
+### MEOT7/MEOT16 AND SAOD INDICES
+
+tmp<-ccf(d_z$SAOD,d_z$MEOT7, lag=13)  #Note that ccf does not take
+lag_m<- -13:13
+tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
+plot(tmp, main="SAOD and MEOT7 lag analysis", ylab="Cross-correlation",
+     xlab="Lag (month)", ylim=c(-1,1))
+
+absext <-max(abs(tmp$acf)) # maximum of the extremum
+pos<-match(absext,tmp$acf) #find the position and lag, if NA it means it was negative
+if (is.na(pos)) {
+  pos<-match(absext*-1,tmp$acf)
+} 
+absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
+
+tmp<-ccf(d_z$SAOD,d_z$MEOT16, lag=13)  #Note that ccf does not take
+lag_m<- -13:13
+tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
+plot(tmp, main="SAOD and MEOT16 lag analysis",ylab="Cross-correlation",
+     xlab="Lag (month)", ylim=c(-1,1))
+
+absext <-max(abs(tmp$acf)) # maximum of the extremum
+pos<-match(absext,tmp$acf) #find the position and lag, if NA it means it was negative
+if (is.na(pos)) {
+  pos<-match(absext*-1,tmp$acf)
+} 
+absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
+
+telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMO","QBO")
          
