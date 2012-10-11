@@ -5,7 +5,8 @@
 #and MSSA analyses generated at Clark Labs.                                                     #
 #Note that spatial patterns from MEOT and MSSA components are not analyzed in this script       #                 #
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 06/19/2012                                                                               #
+#DATE: 10/10/2012            
+#Version: 3
 #PROJECT: Clark Labs Climate predction- MEOT/MSSA paper                                         #
 #################################################################################################
 
@@ -22,7 +23,8 @@ library(foreign)                             # Library for format exchange (e.g.
 library(gdata)                               # various tools with xls reading
 library(xts)                                 # basic package for time series analysis
 library(zoo)                                 # basic package for time series analysis
-
+#library(forecast)                            # package containing ARIMA procedures
+library(rasterVis)
 ### Parameters and argument
 
 infile1<-"SAODI-01-1854_06-2011_test.asc"             #GHCN shapefile containing variables for modeling 2010                 
@@ -31,11 +33,15 @@ infile2<-"SAODI-01-1854_06-2011.csv"                     #List of 10 dates for t
 infile3<-"MEOT_MSSA_Telcon_indices_08062012.xlsx"                        #LST dates name
 
 #path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/"
+#on MAC:
 path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/MEOT_analysis_R_10102012"
+# on Atla:
+path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysis_R_10102012"
+
 
 setwd(path)
 
-out_prefix<-"MEOT_paper_10102012_"
+out_prefix<-"MEOT_paper_11022012_"
 telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
 mode_list_MEOT<-c("MEOT1","MEOT3","MEOT7","MEOT10","MEOT15","MEOT16")
 mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")    
@@ -85,25 +91,8 @@ time(d_z)  #no time stamp??
 time(d_z2) 
 
 ### START THE ANALYSIS
-plot(d_z$MEOT1)
-acf(d_z$MEOT1) #THis is working, d_z is a zoo object
-pacf(d_z$MEOT1)
-ccf(d_z$MEOT1,d_z$MEI)
-tmp<-ccf(d_z$MEOT1,d_z$MEI)
-lag_m<- -21:21    #Creting a sequence of -21 ro 21
-tmp$lag[,1,1]<-lag_m
-plot(tmp)
 
-# MEOT1 and MEI
-
-tmp<-ccf(d_z$MEOT1,d_z$MEI, lag=13 ) #Note that ccf does not take
-lag_m<- -13:13
-tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
-plot(tmp, main="Lag cross-correlation between MEOT1 and MEI")
-
-absext <-max(abs(tmp$acf)) # maximum of the extremum
-pos<-match(absext,tmp$acf) #find the position and lag
-absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
+## PART I: SAOD analysis: comparison to other indices...
 
 # AMM AND SAOD INDEX
 
@@ -147,9 +136,9 @@ if (is.na(pos)) {
 } 
 absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
 
-# MEOT10/MEOT15 AND SAOD INDICES
+# MEOT10/MEOT15 QUADRATURE...Figure??
          
-tmp<-ccf(d_z$SAOD,d_z$MEOT10, lag=13)  #Note that ccf does not take
+tmp<-ccf(d_z$MEOT10,d_z$MEOT15, lag=13)  #Note that ccf does not take
 lag_m<- -13:13
 tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
 plot(tmp, main="SAOD and MEOT10 lag analysis", ylab="Cross-correlation",
@@ -161,6 +150,7 @@ if (is.na(pos)) {
   pos<-match(absext*-1,tmp$acf)
 } 
 absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
+
 
 tmp<-ccf(d_z$SAOD,d_z$MEOT15, lag=13)  #Note that ccf does not take
 lag_m<- -13:13
@@ -177,13 +167,27 @@ absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absol
 
 ### MEOT7/MEOT16 AND SAOD INDICES
 
-tmp<-ccf(d_z$SAOD,d_z$MEOT7, lag=13)  #Note that ccf does not take
+tmp<-ccf(d_z$MEOT7,d_z$MEOT16, lag=13)  #Note that ccf does not take
 lag_m<- -13:13
 lag_m<-seq(-1*lag_window,lag_window,1)
 
 tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
 plot(tmp, main="SAOD and MEOT7 lag analysis", ylab="Cross-correlation",
      xlab="Lag (month)", ylim=c(-1,1))
+labels<-c(-13,-11,-9,-7,-5,-3,0,3,5,7,9,11,13)
+
+plot(lag_m,tmp$acf,type="h", 
+     main="SAOD and MEOT7 lag analysis", ylab="Cross-correlation",
+     xlab="Lag (month)", ylim=c(-1,1))
+axis(at=labels,labels=labels,side=1)
+axis(at=lag_m,side=1) #side=1 for below (x axis)
+#axis(2,las=1 ) # Draw axis on the left, with labels oriented perdendicular to axis.
+#box()
+zeros<-rep(0,length(lag_m))
+
+lines(lag_m,zeros)
+
+  #using option h crates a thin stick like plot...
 
 absext <-max(abs(tmp$acf)) # maximum of the extremum
 pos<-match(absext,tmp$acf) #find the position and lag, if NA it means it was negative
@@ -191,6 +195,10 @@ if (is.na(pos)) {
   pos<-match(absext*-1,tmp$acf)
 } 
 absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
+quartz(6,10)
+plot(d_z$MEOT7,col="blue",ylim=c(-1,1))
+par(new=T)
+plot(d_z$MEOT16,col="green", ylim=c(-1,1),axes=F)
 
 tmp<-ccf(d_z$SAOD,d_z$MEOT16, lag=13)  #Note that ccf does not take
 lag_m<- -13:13
@@ -205,15 +213,18 @@ if (is.na(pos)) {
 } 
 absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
 
-### PREPARE TABLE FOR THE PAPER...
+### PART II : ANALYSIS FOR PAPER -PREPARING TABLEs: table 2 and table 3
 
-#telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOunsm","QBO")
+#MEOT tables and figs
+#Table2. Maximum absolute value for lag cross correlations between climate indices and MEOTs (lag in parenthesis).
+
 mode_list<-mode_list_MEOT    
 
 lag_table_ext<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
 lag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
 lag_table_text<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
 
+#Make this loop a function!!! and call it on a list with mode_list and teleconnection indices...
 for (i in 1:length(telind)){
   telindex<-telind[i]
   pos1<-match(telindex,names(d_z))
@@ -237,6 +248,8 @@ for (i in 1:length(telind)){
     pos<-match(absext,ccf_obj$acf) #find the position and lag, if NA it means it was negative
     if (is.na(pos)) {
       pos<-match(absext*-1,ccf_obj$acf)
+      absext<-absext*-1
+      
     } 
     absext_lag<-ccf_obj$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
     
@@ -253,19 +266,38 @@ for (i in 1:length(telind)){
 lag_table_ext<-as.data.frame(lag_table_ext)
 names(lag_table_ext)<-mode_list
 rownames(lag_table_ext)<-telind
-write.table(lag_table_ext,file="lag_table_extremum_window_13.txt",sep=",")
+file_name<-paste("MEOT_lag_table_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
+write.table(lag_table_ext,file=file_name,sep=",")
 
 lag_table_lag<-as.data.frame(lag_table_lag)
 names(lag_table_lag)<-mode_list
 rownames(lag_table_lag)<-telind
-write.table(lag_table_lag,file="lag_table_extremum_window_13.txt",sep=",")
+file_name<-paste("MEOT_lag_table_lag_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
+write.table(lag_table_lag,file=file_name,sep=",")
 
 lag_table_text<-as.data.frame(lag_table_text)
 names(lag_table_text)<-mode_list
 rownames(lag_table_text)<-telind
-write.table(lag_table_text,file="test.txt",sep=",")
+file_name<-paste("MEOT_lag_table_lag_ext_text", lag_window,"_",out_prefix,".txt",sep="")
+write.table(lag_table_text,file=file_name,sep=",")
+
+meot_obj<-list(lag_table_ext,lag_table_lag,lag_table_text)
+names(meot_obj)<-c("extremum","lag_ext","text")
+file_name<-paste("meot_obj_lag_analysis_", lag_window,"_",out_prefix,".RData",sep="")
+save(meot_obj,file=file_name)
 
 # NOW RUN ANALYSIS FOR PCA
+#PCA tables and figs
+#Table3. Maximum absolute value for lag cross correlations between climate indices and MSSA modes (lag in parenthesis).
+
+lag_table_ext<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
+lag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
+lag_table_text<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
+lag_cross_cor_PCA<-vector("list",length(mode_list))
+lag_m<-seq(-1*lag_window,lag_window,1)
+
+#lag_cross_cor_PCA_m<-array(data=NA,nrow=length(lag_m),ncol=length(mode_list))
+                     
 mode_list<-mode_list_PCA
 for (i in 1:length(telind)){
   telindex<-telind[i]
@@ -290,6 +322,7 @@ for (i in 1:length(telind)){
     pos<-match(absext,ccf_obj$acf) #find the position and lag, if NA it means it was negative
     if (is.na(pos)) {
       pos<-match(absext*-1,ccf_obj$acf)
+      absext<-absext*-1   #recover the sign
     } 
     absext_lag<-ccf_obj$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
     
@@ -305,17 +338,152 @@ for (i in 1:length(telind)){
 lag_table_ext<-as.data.frame(lag_table_ext)
 names(lag_table_ext)<-mode_list
 rownames(lag_table_ext)<-telind
-write.table(lag_table_ext,file="lag_table_extremum_window_13.txt",sep=",")
+file_name<-paste("MSSA_lag_table_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
+write.table(lag_table_ext,file=file_name,sep=",")
 
 lag_table_lag<-as.data.frame(lag_table_lag)
 names(lag_table_lag)<-mode_list
 rownames(lag_table_lag)<-telind
-write.table(lag_table_lag,file="lag_table_extremum_window_13.txt",sep=",")
+file_name<-paste("MSSA_lag_table_lag_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
+write.table(lag_table_lag,file=file_name,sep=",")
 
 lag_table_text<-as.data.frame(lag_table_text)
 names(lag_table_text)<-mode_list
 rownames(lag_table_text)<-telind
-write.table(lag_table_text,file="test.txt",sep=",")
+file_name<-paste("MSSA_lag_table_lag_ext_text", lag_window,"_",out_prefix,".txt",sep="")
+write.table(lag_table_text,file=file_name,sep=",")
+
+#lag_cross_cor_PCA_m<-as.data.frame(lag_table_text)
+#names(lag_cross_cor_PCA_m)<-mode_list
+#rownames(lag_cross_cor_PCA_m)<-
+#file_name<-paste("MSSA_lag_table_lag_ext_text", lag_window,"_",out_prefix,".txt",sep="")
+#write.table(lag_table_text,file=file_name,sep=",")
+
+mssa_obj<-list(lag_table_ext,lag_table_lag,lag_table_text)
+names(mssa_obj)<-c("extremum","lag_ext","text")
+file_name<-paste("mssa_obj_lag_analysis_", lag_window,"_",out_prefix,".RData",sep="")
+save(mssa_obj,file=file_name)
+
+# formated figure for lag correlatioon analysis (bar plot)
+
+### PART III: formated figure for lag correlatioon analysis (bar plot)
+
+#MEOT 1 and MEOT3
+
+list_fig_MEOT<-vector("list",3)
+list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_5_paper_MEOT1_MEOT3_barplot_lag_crosscorrelation")
+list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_8_paper_MEOT7_MEOT16_barplot_lag_crosscorrelation")
+list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_11_paper_MEOT10_MEOT15_barplot_lag_crosscorrelation")
+
+#start the loop Make it a function...
+for (i in 1:length(list_fig_MEOT)){
+  pos1<-match(list_fig_MEOT[[i]][[1]],names(meot_obj$extremum))
+  pos2<-match(list_fig_MEOT[[i]][[2]],names(meot_obj$extremum))
+  plot_name<- paste(list_fig_MEOT[[i]][[3]],"_",out_prefix,".png",sep="")
+  names_ind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMO","QBO")
+  data_plot<-cbind(as.vector(meot_obj$extremum[pos1]),as.vector(meot_obj$extremum[pos2]))
+  
+  png(plot_name)
+  heights<-as.matrix(t(data_plot))
+  barplot(heights,     #data to plot
+          #main=paste(names(data_plot)[pos1]," and ",names(data_plot)[pos2],sep=""),
+          names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+          beside=TRUE,                         # see two barplots for comparisons...
+          xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
+          ylab="Lag crosscorrelation",font.lab=2,
+          col=c("blue","red"), ylim=c(-1,1))
+  grid(nx=12,ny=10)    
+  legend("topright",legend=c(list_fig_MEOT[[i]][[1]],list_fig_MEOT[[i]][[2]]), cex=0.8, col=c("blue","red"),
+         pch=15)
+  box()
+  dev.off()
+  
+}
+
+list_fig_MSSA<-vector("list",3)
+list_fig_MSSA[[1]]<- c("MSSA1","MSSA3","Figure_18_paper_MSSA1_MSSA3_barplot_lag_crosscorrelation")
+list_fig_MSSA[[2]]<- c("MSSA2","MSSA4","Figure_19_paper_MSSA2_MSSA4_barplot_lag_crosscorrelation")
+list_fig_MSSA[[3]]<- c("MSSA5","MSSA6","Figure_19_paper_MSSA5_MSSA6_barplot_lag_crosscorrelation")
+
+for (i in 1:length(list_fig_MSSA)){
+  pos1<-match(list_fig_MSSA[[i]][[1]],names(mssa_obj$extremum))
+  pos2<-match(list_fig_MSSA[[i]][[2]],names(mssa_obj$extremum))
+  plot_name<- paste(list_fig_MSSA[[i]][[3]],"_",out_prefix,".png",sep="")
+  names_ind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMO","QBO")
+  data_plot<-cbind(as.vector(mssa_obj$extremum[pos1]),as.vector(mssa_obj$extremum[pos2]))
+  
+  png(plot_name)
+  heights<-as.matrix(t(data_plot))
+  barplot(heights,     #data to plot
+          #main=paste(names(data_plot)[pos1]," and ",names(data_plot)[pos2],sep=""),
+          names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+          beside=TRUE,                         # see two barplots for comparisons...
+          xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
+          ylab="Lag crosscorrelation",font.lab=2,
+          col=c("blue","red"), ylim=c(-1,1))
+  grid(nx=12,ny=10)    
+  
+  ##################### CREATING MEOT PLOTS ON 11/02/2012 ON ATLAS  #################
+  ################# PLOT EEOT1
+  # On Mac Benoit
+  path_data<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MSSA_paper/Data_paper/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
+  # On Atlas:
+  path_data<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
+  setwd(path_data)
+  lf1<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_1.rst")
+  lf3<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_3.rst")
+  lf7<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_7.rst")
+  lf16<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_16.rst")
+  lf10<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_10.rst")
+  lf15<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_15.rst")
+  #list_meot[[]]
+  lf<-mixedsort(lf)  #Use mixedsort instead of "sort" to take into account the 
+  meot_rast<-stack(lf)
+  layerNames(meot1_rast)<-paste("Lag", 0:12,sep=" ")
+  col.breaks <- pretty(s.range, n=100)
+  lab.breaks <- pretty(s.range, n=5)
+  temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
+  
+  X11(width=18,height=12)
+  #tiff(width=18,height=18,units="in",file="test_meot1.tiff",res=300,compression="lzw",antialias="none") #Worked
+  
+  levelplot(meot_rast,col.regions=temp.colors)
+  plot_name<-paste("meot1")
+  savePlot(paste(plot_name,"_",out_prefix,".tiff", sep=""), type="tiff")
+  #dev.copy(tiff,paste(plot_name,"_",out_prefix,".tiff", sep=""), res=75,antialias="none")
+  dev.off()
+  #######################
+  
+  layout(matrix(c(0,1,1,2,2,3,3,4,4,0,
+                  0,5,5,6,6,7,7,8,8,0,
+                  9,9,10,10,11,11,12,12,13,13),3,10,byrow=TRUE), TRUE)
+  for (i in 1:length(lf)){
+    meot_lag<-raster(lf[i])
+    meot_lag<-as(raster(lf[i]),"SpatialGridDataFrame")
+    #plot(meot_lag, breaks=col.breaks, col=temp.colors(length(col.breaks)-1), main=paste("lag",i,sep=" "),
+    #     cex.main=.8,ylim=c(-90,90),xlim=c(-180,180),axis=list(at=lab.breaks, labels=lab.breaks))
+    op <- par(mar = rep(0, 4))
+    par(op)
+    image(meot_lag)
+    #levelplot(meot_lag)
+  }
+  
+  dev.off()
+  
+  legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.8, col=c("blue","red"),
+         pch=15)
+  box()
+  dev.off()
+}
+
+# barplot(heights, names.arg=names_ind, axes=FALSE, axisnames=FALSE,
+#         beside=TRUE,
+#         col=c("blue","red"), ylim=c(-1,1))
+# axis(1,at=1:length(names_ind),labels=names_ind,cex.axis=1)
+# axis(2)
+# mp<-barplot(heights,axes= FALSE,axisnames= FALSE,
+#         beside=TRUE,
+#         col=c("blue","red"), ylim=c(-1,1))
 
 
 ################# END OF SCRIPT #######################
