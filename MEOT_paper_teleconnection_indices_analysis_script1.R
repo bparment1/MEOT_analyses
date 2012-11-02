@@ -423,58 +423,77 @@ for (i in 1:length(list_fig_MSSA)){
           col=c("blue","red"), ylim=c(-1,1))
   grid(nx=12,ny=10)    
   
-  ##################### CREATING MEOT PLOTS ON 11/02/2012 ON ATLAS  #################
-  ################# PLOT EEOT1
-  # On Mac Benoit
-  path_data<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MSSA_paper/Data_paper/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
-  # On Atlas:
-  path_data<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
-  setwd(path_data)
-  lf1<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_1.rst")
-  lf3<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_3.rst")
-  lf7<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_7.rst")
-  lf16<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_16.rst")
-  lf10<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_10.rst")
-  lf15<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_15.rst")
-  #list_meot[[]]
-  lf<-mixedsort(lf)  #Use mixedsort instead of "sort" to take into account the 
-  meot_rast<-stack(lf)
-  layerNames(meot1_rast)<-paste("Lag", 0:12,sep=" ")
-  col.breaks <- pretty(s.range, n=100)
-  lab.breaks <- pretty(s.range, n=5)
-  temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
-  
-  X11(width=18,height=12)
-  #tiff(width=18,height=18,units="in",file="test_meot1.tiff",res=300,compression="lzw",antialias="none") #Worked
-  
-  levelplot(meot_rast,col.regions=temp.colors)
-  plot_name<-paste("meot1")
-  savePlot(paste(plot_name,"_",out_prefix,".tiff", sep=""), type="tiff")
-  #dev.copy(tiff,paste(plot_name,"_",out_prefix,".tiff", sep=""), res=75,antialias="none")
-  dev.off()
-  #######################
-  
-  layout(matrix(c(0,1,1,2,2,3,3,4,4,0,
-                  0,5,5,6,6,7,7,8,8,0,
-                  9,9,10,10,11,11,12,12,13,13),3,10,byrow=TRUE), TRUE)
-  for (i in 1:length(lf)){
-    meot_lag<-raster(lf[i])
-    meot_lag<-as(raster(lf[i]),"SpatialGridDataFrame")
-    #plot(meot_lag, breaks=col.breaks, col=temp.colors(length(col.breaks)-1), main=paste("lag",i,sep=" "),
-    #     cex.main=.8,ylim=c(-90,90),xlim=c(-180,180),axis=list(at=lab.breaks, labels=lab.breaks))
-    op <- par(mar = rep(0, 4))
-    par(op)
-    image(meot_lag)
-    #levelplot(meot_lag)
-  }
-  
-  dev.off()
-  
   legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.8, col=c("blue","red"),
          pch=15)
   box()
   dev.off()
 }
+
+##################### CREATING MEOT PLOTS ON 11/02/2012 ON ATLAS  #################
+################# PLOT EEOT1
+# On Mac Benoit
+path_data<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MSSA_paper/Data_paper/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
+# On Atlas:
+path_data<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
+setwd(path_data)
+lf_list<-vector("list",6)
+lf_list[[1]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_1.rst")
+lf_list[[2]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_3.rst")
+lf_list[[3]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_7.rst")
+lf_list[[4]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_16.rst")
+lf_list[[5]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_10.rst")
+lf_list[[6]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_15.rst")
+#list_meot[[]]
+col.breaks <- pretty(s.range, n=100)
+lab.breaks <- pretty(s.range, n=5)
+temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
+#X11(width=24,height=12)    
+meot_names<-c("meot1","meot3","meot7","meot16","meot10","meot15")
+mask_land<-raster("mask_rgf_1_1.rst")
+mask_land[mask_land==0]<-NA
+#NOT WORKING IN LOOP BECAUSE IT TAKES TOO MUCH TIME...
+X11(width=24,height=12)    
+
+for (j in 1:length(lf_list)){
+  #j=j+1
+  #Sys.sleep(.3) #added to control plot time
+  
+  lf<-mixedsort(lf_list[[j]])  #Use mixedsort instead of "sort" to take into account the 
+  meot_rast<-stack(lf)
+  layerNames(meot_rast)<-paste("Lag", 0:12,sep=" ")
+  meot_rast_m<-mask(meot_rast,mask_land)
+  #levelplot(meot_rast_m,col.regions=temp.colors)
+  levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=2)
+  
+  plot_name<-meot_names[j]
+  savePlot(paste(plot_name,"test_",out_prefix,".tiff", sep=""), type="tiff")
+  #Sys.sleep(.0) #Once plot drawned and saved, it can be deactivated
+  
+}
+dev.off()
+
+#idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='month')
+idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='6 month')
+
+datelabels<-as.character(1:length(idx))
+for (i in 1:length(idx)){
+  date_proc<-idx[i]
+  month<-strftime(date_proc, "%b")          # current month of the date being processed
+  day<-strftime(date_proc, "%d")
+  year<-strftime(date_proc, "%y")  #Use y instead of Y for 2 digits
+  datelabels[i]<-paste(month,year,sep="")
+}
+X11(width=10,height=6)
+plot(dat$MEOT1,type="l",col="blue",axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
+lines(dat$MEOT3,tybe="b",col="darkgreen",axes=FALSE)
+breaks_lab<-seq(1,300,by=6)
+axis(side=2)
+#axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
+axis(side=1,las=2,
+     at=breaks_lab,labels=datelabels) #reduce number of labels to Jan and June
+
+### Add this code...
+#################################
 
 # barplot(heights, names.arg=names_ind, axes=FALSE, axisnames=FALSE,
 #         beside=TRUE,
@@ -487,3 +506,24 @@ for (i in 1:length(list_fig_MSSA)){
 
 
 ################# END OF SCRIPT #######################
+
+# 
+# 
+# for (j in 1:length(lf_list)){
+#   j=j+1
+#   lf<-mixedsort(lf_list[[j]])  #Use mixedsort instead of "sort" to take into account the 
+#   meot_rast<-stack(lf)
+#   layerNames(meot_rast)<-paste("Lag", 0:12,sep=" ")
+#   meot_rast_m<-mask(meot_rast,mask_land)
+#   #levelplot(meot_rast_m,col.regions=temp.colors)
+#   levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=2)
+#   
+#   plot_name<-meot_names[j]
+#   savePlot(paste(plot_name,"test_",out_prefix,".tiff", sep=""), type="tiff")
+#   
+# }
+# dev.off()
+#dev.copy(tiff,paste(plot_name,"_",out_prefix,".tiff", sep=""), res=75,antialias="none")
+
+}
+#dev.off()
