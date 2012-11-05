@@ -41,7 +41,7 @@ path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysi
 
 setwd(path)
 
-out_prefix<-"MEOT_paper_11022012_"
+out_prefix<-"MEOT_paper_11052012_"
 telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
 mode_list_MEOT<-c("MEOT1","MEOT3","MEOT7","MEOT10","MEOT15","MEOT16")
 mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")    
@@ -429,7 +429,7 @@ for (i in 1:length(list_fig_MSSA)){
   dev.off()
 }
 
-##################### CREATING MEOT PLOTS ON 11/02/2012 ON ATLAS  #################
+##################### CREATING MEOT PLOTS ON 11/05/2012 ON ATLAS  #################
 ################# PLOT EEOT1
 # On Mac Benoit
 path_data<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MSSA_paper/Data_paper/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
@@ -453,7 +453,13 @@ mask_land<-raster("mask_rgf_1_1.rst")
 mask_land[mask_land==0]<-NA
 #NOT WORKING IN LOOP BECAUSE IT TAKES TOO MUCH TIME...
 X11(width=24,height=12)    
+#MEOT 1 and MEOT3
 
+list_fig_MEOT<-vector("list",3)
+list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_3_paper_MEOT1_MEOT3_sequence_spatial_pattern")
+list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_6_paper_MEOT7_MEOT16_sequence_spatial_pattern")
+list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_9_paper_MEOT10_MEOT15_sequence_spatial_pattern")
+#par(mfrow=c(2,1))
 for (j in 1:length(lf_list)){
   #j=j+1
   #Sys.sleep(.3) #added to control plot time
@@ -472,26 +478,131 @@ for (j in 1:length(lf_list)){
 }
 dev.off()
 
-#idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='month')
-idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='6 month')
 
+#idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='month')
+list_fig_MEOT<-vector("list",3)
+list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_4_paper_MEOT1_MEOT3_sequence_spatial_pattern")
+list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_7_paper_MEOT7_MEOT16_sequence_spatial_pattern")
+list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_10_paper_MEOT10_MEOT15_sequence_spatial_pattern")
+MEOT_quadratures<-c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15")
+dat_subset<-subset(dat,select=MEOT_quadratures)
+figure_nb<-c(4,7,10)
+X11(width=10,height=6)
+idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')
 datelabels<-as.character(1:length(idx))
 for (i in 1:length(idx)){
   date_proc<-idx[i]
   month<-strftime(date_proc, "%b")          # current month of the date being processed
   day<-strftime(date_proc, "%d")
   year<-strftime(date_proc, "%y")  #Use y instead of Y for 2 digits
-  datelabels[i]<-paste(month,year,sep="")
+  datelabels[i]<-paste(year,sep="")
 }
-X11(width=10,height=6)
-plot(dat$MEOT1,type="l",col="blue",axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
-lines(dat$MEOT3,tybe="b",col="darkgreen",axes=FALSE)
-breaks_lab<-seq(1,300,by=6)
-axis(side=2)
-#axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
-axis(side=1,las=2,
-     at=breaks_lab,labels=datelabels) #reduce number of labels to Jan and June
+#nb<-ncol(dat_subset)/2
+#meot_seq<-seq(1,6,by=2)
+for (k in 1:3){
+  MEOTa<- list_fig_MEOT[[k]][[1]]
+  MEOTb<- list_fig_MEOT[[k]][[2]]
+  plot(dat_subset[[MEOTa]],type="l",col="blue",axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
+  lines(dat_subset[[MEOTb]],tybe="b",col="darkgreen",axes=FALSE)
+  breaks_lab<-seq(1,312,by=12)
+  axis(side=2)
+  #axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
+  axis(side=1,las=1,
+       at=breaks_lab,labels=datelabels, cex=0.8) #reduce number of labels to Jan and June
+  box()
+  legend("topleft",legend=c(MEOTa,MEOTb), cex=0.8, col=c("blue","darkgreen"),
+         lty=1,lwd=2)  #lwd=line width
+  title(paste("Temporal profiles for", MEOTa, "and", MEOTb,sep=" "))
+  
+  savePlot(paste(list_fig_MEOT[[k]][[3]],"_",out_prefix,".tiff", sep=""), type="tiff")  
+  
+}
+dev.off()
 
+for (k in 1:3){
+  
+  MEOTa<- list_fig_MEOT[[k]][[1]]
+  MEOTb<- list_fig_MEOT[[k]][[2]]
+  pos1<-match(MEOTa,names(d_z))
+  pos2<-match(MEOTb,names(d_z))
+  ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13)  #Note that ccf does not take
+  lag_m<-seq(-1*lag_window,lag_window,1)
+  ccf_obj$lag[,1,1]<-lag_m  #replacign lag values because continuous
+  #X11(type="cairo") #Cairo because it is macos...?
+  plot_name<-paste("crosscorrelation", MEOTa, "and", MEOTb,"lag_analysis",sep="_")#replace by list fig naem
+  png(paste(plot_name,"_",out_prefix,".png", sep=""))
+  #plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
+  #     xlab="Lag (month)", ylim=c(-1,1))
+  plot(ccf_obj, main= paste(MEOTa, "and", MEOTb,"lag analysis",sep=" "), ylab="Cross-correlation",
+       xlab="Lag (month)", ylim=c(-1,1))
+  #plot_name<-paste(telindex, "and", mode_n,"lag analysis",sep="_")
+  #savePlot(paste(plot_name,"_",out_prefix,".png", sep=""), type="png")
+  dev.off()
+#Add code for plot h
+}
+################ COMBINED FIG
+#idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='month')
+list_fig_MEOT<-vector("list",3)
+list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_4_paper_MEOT1_MEOT3_sequence_spatial_pattern")
+list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_7_paper_MEOT7_MEOT16_sequence_spatial_pattern")
+list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_10_paper_MEOT10_MEOT15_sequence_spatial_pattern")
+MEOT_quadratures<-c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15")
+dat_subset<-subset(dat,select=MEOT_quadratures)
+figure_nb<-c(4,7,10)
+
+idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')
+datelabels<-as.character(1:length(idx))
+for (i in 1:length(idx)){
+  date_proc<-idx[i]
+  month<-strftime(date_proc, "%b")          # current month of the date being processed
+  day<-strftime(date_proc, "%d")
+  year<-strftime(date_proc, "%y")  #Use y instead of Y for 2 digits
+  datelabels[i]<-paste(year,sep="")
+}
+
+X11(width=10,height=14)
+par(mfrow=c(2,1))
+
+for (k in 1:3){
+  MEOTa<- list_fig_MEOT[[k]][[1]]
+  MEOTb<- list_fig_MEOT[[k]][[2]]
+  plot(dat_subset[[MEOTa]],type="l",col="blue",axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
+  lines(dat_subset[[MEOTb]],tybe="b",col="darkgreen",axes=FALSE)
+  breaks_lab<-seq(1,312,by=12)
+  axis(side=2)
+  #axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
+  axis(side=1,las=1,
+       at=breaks_lab,labels=datelabels, cex=0.8) #reduce number of labels to Jan and June
+  box()
+  legend("topleft",legend=c(MEOTa,MEOTb), cex=0.8, col=c("blue","darkgreen"),
+         lty=1,lwd=2)  #lwd=line width
+  title(paste("Temporal profiles for", MEOTa, "and", MEOTb,sep=" "))
+  
+  #add second plot
+  pos1<-match(MEOTa,names(d_z))
+  pos2<-match(MEOTb,names(d_z))
+  ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13,plot=FALSE)  #Note that ccf does not take
+  lag_m<-seq(-1*lag_window,lag_window,1)
+  ccf_obj$lag[,1,1]<-lag_m  #replacign lag values because continuous
+  #X11(type="cairo") #Cairo because it is macos...?
+  #plot_name<-paste("crosscorrelation", MEOTa, "and", MEOTb,"lag_analysis",sep="_")#replace by list fig naem
+  #png(paste(plot_name,"_",out_prefix,".png", sep=""))
+  #plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
+  #     xlab="Lag (month)", ylim=c(-1,1))
+  plot(ccf_obj, main= paste(MEOTa, "and", MEOTb,"lag analysis",sep=" "), ylab="Cross-correlation",
+       xlab="Lag (month)", ylim=c(-1,1),
+       xaxt="n") #xaxt="n" do not display x axis while yaxt="n" means do not display y axis
+  label_ccf<-seq(-10,10,by=2)
+  label_ccf<-c(-13,label_ccf,13)
+  axis(1,at=label_ccf,label=label_ccf,cex.axis=1)
+  #axis(1,at=lag_m,label=lag_m)
+  
+  savePlot(paste(list_fig_MEOT[[k]][[3]],"_",out_prefix,".tiff", sep=""), type="tiff")  
+  
+}
+
+dev.off()
+#X11(type="cairo
 ### Add this code...
 #################################
 
