@@ -5,7 +5,7 @@
 #and MSSA analyses generated at Clark Labs.                                                     #
 #Note that spatial patterns from MEOT and MSSA components are not analyzed in this script       #                 #
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 10/10/2012            
+#DATE: 11/06/2012            
 #Version: 3
 #PROJECT: Clark Labs Climate predction- MEOT/MSSA paper                                         #
 #################################################################################################
@@ -305,7 +305,14 @@ for (i in 1:length(telind)){
   for (j in 1:length(mode_list)){
     mode_n<-mode_list[j]
     pos2<-match(mode_n,names(d_z))
-    ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13)  #Note that ccf does not take
+    if(mode_n=="MSSA3"){
+      ccf_obj<-ccf(d_z[,pos1],(d_z[,pos2]*-1), lag=13)  #Addded on 11/06
+    } 
+    if(mode_n!="MSSA3"){
+      ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13)  #Addded on 11/06
+    }
+    #ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13)  #Note that ccf does not take
+
     lag_m<-seq(-1*lag_window,lag_window,1)
     ccf_obj$lag[,1,1]<-lag_m  #replacign lag values because continuous
     #X11(type="cairo") #Cairo because it is macos...?
@@ -532,15 +539,16 @@ dev.off()
 
 ################################ COMBINED FIG  ############################
 #idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='month')
-list_fig_MEOT<-vector("list",3)
+list_fig_MEOT<-vector("list",4)
 list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_4_paper_MEOT1_MEOT3_sequence_spatial_pattern")
 list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_7_paper_MEOT7_MEOT16_sequence_spatial_pattern")
 list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_10_paper_MEOT10_MEOT15_sequence_spatial_pattern")
-MEOT_quadratures<-c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15")
-MSSA_quadratures<-c("MSSA1","MSSA3")
+list_fig_MEOT[[4]]<- c("MSSA1","MSSA3","Figure_13_paper_MSSA1_MSSA3_sequence_spatial_pattern")
+
+MEOT_quadratures<-c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15","MSSA1","MSSA3")
+#MSSA_quadratures<-c("MSSA1","MSSA3")
 
 dat_subset<-subset(dat,select=MEOT_quadratures)
-dat_subset<-subset(dat,select=MSSA_quadratures)
 
 idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')
 datelabels<-as.character(1:length(idx))
@@ -552,15 +560,20 @@ for (i in 1:length(idx)){
   datelabels[i]<-paste(year,sep="")
 }
 
-MSSA_quadratures<-c("MSSA1","MSSA3")
-dat_subset<-subset(dat,select=MSSA_quadratures)
+#MSSA_quadratures<-c("MSSA1","MSSA3")
+#dat_subset<-subset(dat,select=MSSA_quadratures)
 
 X11(width=10,height=14)
 par(mfrow=c(2,1))
+out_prefix<-"MEOT_paper_11052012d_"
 
-for (k in 1:3){
+for (k in 1:4){
   MEOTa<- list_fig_MEOT[[k]][[1]]
   MEOTb<- list_fig_MEOT[[k]][[2]]
+  if (MEOTb=="MSSA3"){
+    dat_subset[[MEOTb]]<-dat_subset[[MEOTb]]*-1
+  }
+  
   plot(dat_subset[[MEOTa]],type="l",col="blue",axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
   lines(dat_subset[[MEOTb]],tybe="b",col="darkgreen",axes=FALSE)
   breaks_lab<-seq(1,312,by=12)
@@ -569,16 +582,28 @@ for (k in 1:3){
   axis(side=1,las=1,
        at=breaks_lab,labels=datelabels, cex=1.5) #reduce number of labels to Jan and June
   box()
-  legend("topleft",legend=c(MEOTa,MEOTb), cex=0.8, col=c("blue","darkgreen"),
-         lty=1,lwd=2)  #lwd=line width
+  if (MEOTb!="MSSA3"){
+    legend("topleft",legend=c(MEOTa,MEOTb), cex=0.8, col=c("blue","darkgreen"),
+           lty=1,lwd=2)  #lwd=line width
+  }
+  if (MEOTb=="MSSA3"){
+    legend("topright",legend=c(MEOTa,MEOTb), cex=0.8, col=c("blue","darkgreen"),
+           lty=1,lwd=2)  #lwd=line width
+  }
+
+  
   title(paste("Temporal profiles for", MEOTa, "and", MEOTb,sep=" "))
   
   #add second plot
   pos1<-match(MEOTa,names(d_z))
   pos2<-match(MEOTb,names(d_z))
+  if (MEOTb=="MSSA3"){
+    ccf_obj<-ccf(d_z[,pos1],d_z[,pos2]*-1, lag=13,plot=FALSE)  #Note that MSSA3 needs to be reversed...11/06
+  }
   ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13,plot=FALSE)  #Note that ccf does not take
   lag_m<-seq(-1*lag_window,lag_window,1)
   ccf_obj$lag[,1,1]<-lag_m  #replacign lag values because continuous
+  
   #X11(type="cairo") #Cairo because it is macos...?
   #plot_name<-paste("crosscorrelation", MEOTa, "and", MEOTb,"lag_analysis",sep="_")#replace by list fig naem
   #png(paste(plot_name,"_",out_prefix,".png", sep=""))
@@ -601,6 +626,8 @@ for (k in 1:3){
 dev.off()
 #X11(type="cairo
 ### Add this code...
+lag_cor<-ccf_obj$acf[,,1]  #This is to access cross-cor
+plot(lag_cor*-1)
 #################################
 
 # barplot(heights, names.arg=names_ind, axes=FALSE, axisnames=FALSE,
