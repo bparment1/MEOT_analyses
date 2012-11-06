@@ -447,21 +447,30 @@ lf_list[[6]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_15.rst")
 col.breaks <- pretty(s.range, n=100)
 lab.breaks <- pretty(s.range, n=5)
 temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
-#X11(width=24,height=12)    
+#temp.colors <- colorRampPalette(c('blue', 'yellow3', 'red'))
+temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+#temp.colors <- colorRampPalette(c('blue', 'lightyellow1', 'red'))
+#temp.colors <- colorRampPalette(c('blue', 'lightyellow2', 'red'))
+#temp.colors <- colorRampPalette(c('blue', 'lightyellow3', 'red'))
+#temp.colors <- colorRampPalette(c('blue', 'lightyellow4', 'red'))
+
+X11(width=24,height=12)    
 meot_names<-c("meot1","meot3","meot7","meot16","meot10","meot15")
 mask_land<-raster("mask_rgf_1_1.rst")
 mask_land[mask_land==0]<-NA
 #NOT WORKING IN LOOP BECAUSE IT TAKES TOO MUCH TIME...
-X11(width=24,height=12)    
+#X11(width=30,height=9)    
 #MEOT 1 and MEOT3
 
 list_fig_MEOT<-vector("list",3)
 list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_3_paper_MEOT1_MEOT3_sequence_spatial_pattern")
 list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_6_paper_MEOT7_MEOT16_sequence_spatial_pattern")
 list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_9_paper_MEOT10_MEOT15_sequence_spatial_pattern")
+
 #par(mfrow=c(2,1))
+out_prefix<-"MEOT_paper_11052012c_"
 for (j in 1:length(lf_list)){
-  #j=j+1
+  j=j+1
   #Sys.sleep(.3) #added to control plot time
   
   lf<-mixedsort(lf_list[[j]])  #Use mixedsort instead of "sort" to take into account the 
@@ -469,7 +478,7 @@ for (j in 1:length(lf_list)){
   layerNames(meot_rast)<-paste("Lag", 0:12,sep=" ")
   meot_rast_m<-mask(meot_rast,mask_land)
   #levelplot(meot_rast_m,col.regions=temp.colors)
-  levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=2)
+  levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=4)
   
   plot_name<-meot_names[j]
   savePlot(paste(plot_name,"test_",out_prefix,".tiff", sep=""), type="tiff")
@@ -478,77 +487,60 @@ for (j in 1:length(lf_list)){
 }
 dev.off()
 
+#### DO THIS FOR MSSA
+#path_data<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MSSA_paper/Data_paper/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
+# On Atlas:
+path_data<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
+setwd(path_data)
+lf_list<-vector("list",6)
 
-#idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='month')
-list_fig_MEOT<-vector("list",3)
-list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_4_paper_MEOT1_MEOT3_sequence_spatial_pattern")
-list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_7_paper_MEOT7_MEOT16_sequence_spatial_pattern")
-list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_10_paper_MEOT10_MEOT15_sequence_spatial_pattern")
-MEOT_quadratures<-c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15")
-dat_subset<-subset(dat,select=MEOT_quadratures)
-figure_nb<-c(4,7,10)
-X11(width=10,height=6)
-idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')
-datelabels<-as.character(1:length(idx))
-for (i in 1:length(idx)){
-  date_proc<-idx[i]
-  month<-strftime(date_proc, "%b")          # current month of the date being processed
-  day<-strftime(date_proc, "%d")
-  year<-strftime(date_proc, "%y")  #Use y instead of Y for 2 digits
-  datelabels[i]<-paste(year,sep="")
-}
-#nb<-ncol(dat_subset)/2
-#meot_seq<-seq(1,6,by=2)
-for (k in 1:3){
-  MEOTa<- list_fig_MEOT[[k]][[1]]
-  MEOTb<- list_fig_MEOT[[k]][[2]]
-  plot(dat_subset[[MEOTa]],type="l",col="blue",axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
-  lines(dat_subset[[MEOTb]],tybe="b",col="darkgreen",axes=FALSE)
-  breaks_lab<-seq(1,312,by=12)
-  axis(side=2)
-  #axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
-  axis(side=1,las=1,
-       at=breaks_lab,labels=datelabels, cex=0.8) #reduce number of labels to Jan and June
-  box()
-  legend("topleft",legend=c(MEOTa,MEOTb), cex=0.8, col=c("blue","darkgreen"),
-         lty=1,lwd=2)  #lwd=line width
-  title(paste("Temporal profiles for", MEOTa, "and", MEOTb,sep=" "))
+#lf_list[[1]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_1.rst")
+lf_list[[1]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_1.rst")
+lf_list[[2]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_3.rst")
+mssa3_rast<-meot_rast*-1
+
+#"anom_sst_1982_2007_MSSA_Center_Std_mssa3_S-Mode_CompLoadingImg_1.rst"
+X11(width=24,height=12)    
+mask_land<-raster("mask_rgf_1_1.rst")
+mask_land[mask_land==0]<-NA
+
+mssa_names<-c("MSSA1","MSSA3")
+out_prefix<-"MEOT_paper_11052012c_"
+for (j in 1:length(lf_list)){
+  j=j+1
+  #Sys.sleep(.3) #added to control plot time
   
-  savePlot(paste(list_fig_MEOT[[k]][[3]],"_",out_prefix,".tiff", sep=""), type="tiff")  
+  lf<-mixedsort(lf_list[[j]])  #Use mixedsort instead of "sort" to take into account the 
+  meot_rast<-stack(lf)
+  layerNames(meot_rast)<-paste("Lag", 0:12,sep=" ")
+  if (mssa_names[j]=="MSSA3"){
+    meot_rast<-meot_rast*-1
+  }
+  meot_rast_m<-mask(meot_rast,mask_land)
+  #levelplot(meot_rast_m,col.regions=temp.colors)
+
+  levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=4)
+  
+  plot_name<-mssa_names[j]
+  savePlot(paste(plot_name,"test_",out_prefix,".tiff", sep=""), type="tiff")
+  #Sys.sleep(.0) #Once plot drawned and saved, it can be deactivated
   
 }
 dev.off()
 
-for (k in 1:3){
-  
-  MEOTa<- list_fig_MEOT[[k]][[1]]
-  MEOTb<- list_fig_MEOT[[k]][[2]]
-  pos1<-match(MEOTa,names(d_z))
-  pos2<-match(MEOTb,names(d_z))
-  ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13)  #Note that ccf does not take
-  lag_m<-seq(-1*lag_window,lag_window,1)
-  ccf_obj$lag[,1,1]<-lag_m  #replacign lag values because continuous
-  #X11(type="cairo") #Cairo because it is macos...?
-  plot_name<-paste("crosscorrelation", MEOTa, "and", MEOTb,"lag_analysis",sep="_")#replace by list fig naem
-  png(paste(plot_name,"_",out_prefix,".png", sep=""))
-  #plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
-  #     xlab="Lag (month)", ylim=c(-1,1))
-  plot(ccf_obj, main= paste(MEOTa, "and", MEOTb,"lag analysis",sep=" "), ylab="Cross-correlation",
-       xlab="Lag (month)", ylim=c(-1,1))
-  #plot_name<-paste(telindex, "and", mode_n,"lag analysis",sep="_")
-  #savePlot(paste(plot_name,"_",out_prefix,".png", sep=""), type="png")
-  dev.off()
-#Add code for plot h
-}
-################ COMBINED FIG
+
+
+################################ COMBINED FIG  ############################
 #idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='month')
 list_fig_MEOT<-vector("list",3)
 list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_4_paper_MEOT1_MEOT3_sequence_spatial_pattern")
 list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_7_paper_MEOT7_MEOT16_sequence_spatial_pattern")
 list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_10_paper_MEOT10_MEOT15_sequence_spatial_pattern")
 MEOT_quadratures<-c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15")
+MSSA_quadratures<-c("MSSA1","MSSA3")
+
 dat_subset<-subset(dat,select=MEOT_quadratures)
-figure_nb<-c(4,7,10)
+dat_subset<-subset(dat,select=MSSA_quadratures)
 
 idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')
 datelabels<-as.character(1:length(idx))
@@ -559,6 +551,9 @@ for (i in 1:length(idx)){
   year<-strftime(date_proc, "%y")  #Use y instead of Y for 2 digits
   datelabels[i]<-paste(year,sep="")
 }
+
+MSSA_quadratures<-c("MSSA1","MSSA3")
+dat_subset<-subset(dat,select=MSSA_quadratures)
 
 X11(width=10,height=14)
 par(mfrow=c(2,1))
@@ -572,7 +567,7 @@ for (k in 1:3){
   axis(side=2)
   #axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
   axis(side=1,las=1,
-       at=breaks_lab,labels=datelabels, cex=0.8) #reduce number of labels to Jan and June
+       at=breaks_lab,labels=datelabels, cex=1.5) #reduce number of labels to Jan and June
   box()
   legend("topleft",legend=c(MEOTa,MEOTb), cex=0.8, col=c("blue","darkgreen"),
          lty=1,lwd=2)  #lwd=line width
@@ -591,10 +586,12 @@ for (k in 1:3){
   #     xlab="Lag (month)", ylim=c(-1,1))
   plot(ccf_obj, main= paste(MEOTa, "and", MEOTb,"lag analysis",sep=" "), ylab="Cross-correlation",
        xlab="Lag (month)", ylim=c(-1,1),
-       xaxt="n") #xaxt="n" do not display x axis while yaxt="n" means do not display y axis
-  label_ccf<-seq(-10,10,by=2)
+       xaxt="n",lwd="2") #xaxt="n" do not display x axis while yaxt="n" means do not display y axis
+  label_ccf<-seq(-10,10,by=1)
   label_ccf<-c(-13,label_ccf,13)
   axis(1,at=label_ccf,label=label_ccf,cex.axis=1)
+  
+  #plot(ccf_obj,type="b",axes=false)
   #axis(1,at=lag_m,label=lag_m)
   
   savePlot(paste(list_fig_MEOT[[k]][[3]],"_",out_prefix,".tiff", sep=""), type="tiff")  
