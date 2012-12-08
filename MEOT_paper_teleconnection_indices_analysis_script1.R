@@ -41,7 +41,7 @@ path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysi
 
 setwd(path)
 
-out_prefix<-"MEOT_paper_11052012_"
+out_prefix<-"MEOT_paper_12082012_"
 telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
 mode_list_MEOT<-c("MEOT1","MEOT3","MEOT7","MEOT10","MEOT15","MEOT16")
 mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")    
@@ -461,7 +461,8 @@ temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
 #temp.colors <- colorRampPalette(c('blue', 'lightyellow3', 'red'))
 #temp.colors <- colorRampPalette(c('blue', 'lightyellow4', 'red'))
 
-X11(width=24,height=12)    
+X11(width=24,height=12)   
+
 meot_names<-c("meot1","meot3","meot7","meot16","meot10","meot15")
 mask_land<-raster("mask_rgf_1_1.rst")
 mask_land[mask_land==0]<-NA
