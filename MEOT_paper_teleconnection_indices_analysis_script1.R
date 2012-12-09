@@ -5,7 +5,7 @@
 #and MSSA analyses generated at Clark Labs.                                                     #
 #Note that spatial patterns from MEOT and MSSA components are not analyzed in this script       #                 #
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 11/06/2012            
+#DATE: 12/09/2012            
 #Version: 3
 #PROJECT: Clark Labs Climate predction- MEOT/MSSA paper                                         #
 #################################################################################################
@@ -31,24 +31,25 @@ infile1<-"SAODI-01-1854_06-2011_test.asc"             #GHCN shapefile containing
 infile2<-"SAODI-01-1854_06-2011.csv"                     #List of 10 dates for the regression
 #infile2<-"list_365_dates_04212012.txt"
 infile3<-"MEOT_MSSA_Telcon_indices_08062012.xlsx"                        #LST dates name
+infile3<-"MEOT_MSSA_Telcon_indices_12112012.xlsx"                        #LST dates name
 
 #path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/"
 #on MAC:
 path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/MEOT_analysis_R_10102012"
-# on Atla:
+# on Atlas:
 path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysis_R_10102012"
 
 
 setwd(path)
 
-out_prefix<-"MEOT_paper_12082012_"
+out_prefix<-"MEOT_paper_12162012b_"
 telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
 mode_list_MEOT<-c("MEOT1","MEOT3","MEOT7","MEOT10","MEOT15","MEOT16")
 mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")    
 
 lag_window<-13
 
-## START OF SCRIPT
+############### START OF SCRIPT  #####################
 
 #Importing SAOD index...Note that it was reformatted from the first file in infile1
 
@@ -90,9 +91,9 @@ d_z2<-zoo(dat,dseq)
 time(d_z)  #no time stamp??
 time(d_z2) 
 
-### START THE ANALYSIS
+######### START THE ANALYSIS
 
-## PART I: SAOD analysis: comparison to other indices...
+## PART I: EXPLORATORY ANALYSES WITH COMPARISON; comparison to other indices...
 
 # AMM AND SAOD INDEX
 
@@ -129,7 +130,7 @@ plot(tmp, main="Lag cross-correlation between SAOD and TNA",
      ylab="Cross-correlation",
      xlab="Lag (month)", ylim=c(-1,1))
          
-absext <-max(abs(tmp$acf)) # maximum of the extremum
+absext <-max(abs(tmp$acf)) # maximum of the extremum: you could use range!!! and match the position afterwords..
 pos<-match(absext,tmp$acf) #find the position and lag, if NA it means it was negative
 if (is.na(pos)) {
   pos<-match(absext*-1,tmp$acf)
@@ -213,6 +214,7 @@ if (is.na(pos)) {
 } 
 absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
 
+##########################################################################
 ### PART II : ANALYSIS FOR PAPER -PREPARING TABLEs: table 2 and table 3
 
 #MEOT tables and figs
@@ -286,13 +288,13 @@ names(meot_obj)<-c("extremum","lag_ext","text")
 file_name<-paste("meot_obj_lag_analysis_", lag_window,"_",out_prefix,".RData",sep="")
 save(meot_obj,file=file_name)
 
-# NOW RUN ANALYSIS FOR PCA
-#PCA tables and figs
+# NOW RUN ANALYSIS FOR PCA AND CREATE FIGURES..
+#PCA tables and figs: now create a table with maximum correlation and corresponding lag.
 #Table3. Maximum absolute value for lag cross correlations between climate indices and MSSA modes (lag in parenthesis).
 
 lag_table_ext<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
 lag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
-lag_table_text<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
+lag_table_text<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list)) #Formatted table used in the paper
 lag_cross_cor_PCA<-vector("list",length(mode_list))
 lag_m<-seq(-1*lag_window,lag_window,1)
 
@@ -436,7 +438,7 @@ for (i in 1:length(list_fig_MSSA)){
   dev.off()
 }
 
-##################### CREATING MEOT PLOTS ON 11/05/2012 ON ATLAS  #################
+##################### CREATING MEOT PLOTS ON 12/09/2012 ON ATLAS: Revised fig for paper...  #################
 ################# PLOT EEOT1
 # On Mac Benoit
 path_data<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MSSA_paper/Data_paper/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
@@ -462,8 +464,9 @@ temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
 #temp.colors <- colorRampPalette(c('blue', 'lightyellow4', 'red'))
 
 X11(width=24,height=12)   
-
-meot_names<-c("meot1","meot3","meot7","meot16","meot10","meot15")
+#X11(width=24,height=24)
+par(mfrow=c(2,1))
+meot_names<-c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15")
 mask_land<-raster("mask_rgf_1_1.rst")
 mask_land[mask_land==0]<-NA
 #NOT WORKING IN LOOP BECAUSE IT TAKES TOO MUCH TIME...
@@ -476,22 +479,25 @@ list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_6_paper_MEOT7_MEOT16_sequence_sp
 list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_9_paper_MEOT10_MEOT15_sequence_spatial_pattern")
 
 #par(mfrow=c(2,1))
-out_prefix<-"MEOT_paper_11052012c_"
+out_prefix<-"MEOT_paper_12092012b"
 for (j in 1:length(lf_list)){
   j=j+1
   #Sys.sleep(.3) #added to control plot time
-  
+  plot_name<-meot_names[j]
+  #pdf(width=24,height=12,onefile=F,file=paste(plot_name,"test_",out_prefix,".pdf", sep=""))
   lf<-mixedsort(lf_list[[j]])  #Use mixedsort instead of "sort" to take into account the 
   meot_rast<-stack(lf)
   layerNames(meot_rast)<-paste("Lag", 0:12,sep=" ")
+  title_plot<-paste(meot_names[j], "spatial sequence",sep=" ")
   meot_rast_m<-mask(meot_rast,mask_land)
-  #levelplot(meot_rast_m,col.regions=temp.colors)
-  levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=4)
-  
-  plot_name<-meot_names[j]
-  savePlot(paste(plot_name,"test_",out_prefix,".tiff", sep=""), type="tiff")
-  #Sys.sleep(.0) #Once plot drawned and saved, it can be deactivated
-  
+  #levelplot(meot_rast_m,col.regions=temp.colors,par.settings = list(axis.text = list(font = 2, cex = 1)))
+  levelplot(meot_rast_m,main=title_plot, ylab=NULL,xlab=NULL,,par.settings = list(axis.text = list(font = 2, cex = 1.5),
+                      par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+                      col.regions=temp.colors,at=seq(-1,1,by=0.02))
+  #dev.off()
+  #levelplot(meot_rast_m,col.regions=temp.colors,scales=list(x=list(rot=100, cex=2))) #control the axis not legend
+  savePlot(filename=paste(plot_name,"test_",out_prefix,".tiff", sep=""), type="tiff")
+  #Sys.sleep(.0) #Once plot drawned and saved, it can be deactivated 
 }
 dev.off()
 
@@ -500,7 +506,7 @@ dev.off()
 # On Atlas:
 path_data<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
 setwd(path_data)
-lf_list<-vector("list",6)
+lf_list<-vector("list",2)
 
 #lf_list[[1]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_1.rst")
 lf_list[[1]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_1.rst")
@@ -513,11 +519,13 @@ mask_land<-raster("mask_rgf_1_1.rst")
 mask_land[mask_land==0]<-NA
 
 mssa_names<-c("MSSA1","MSSA3")
-out_prefix<-"MEOT_paper_11052012c_"
+out_prefix<-"MEOT_paper_12092012b_"
 for (j in 1:length(lf_list)){
   j=j+1
   #Sys.sleep(.3) #added to control plot time
-  
+  plot_name<-mssa_names[j]
+  pdf(width=24,height=12,onefile=F,file=paste(plot_name,"test_",out_prefix,".pdf", sep=""))
+
   lf<-mixedsort(lf_list[[j]])  #Use mixedsort instead of "sort" to take into account the 
   meot_rast<-stack(lf)
   layerNames(meot_rast)<-paste("Lag", 0:12,sep=" ")
@@ -525,37 +533,39 @@ for (j in 1:length(lf_list)){
     meot_rast<-meot_rast*-1
   }
   meot_rast_m<-mask(meot_rast,mask_land)
+  title_plot<-paste(mssa_names[j], "spatial sequence",sep=" ")
   #levelplot(meot_rast_m,col.regions=temp.colors)
-
-  levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=4)
-  
+  #levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=4)
+  levelplot(meot_rast_m,main=title_plot, ylab=NULL,xlab=NULL,,par.settings = list(axis.text = list(font = 2, cex = 1.5),
+            par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+            col.regions=temp.colors,at=seq(-1,1,by=0.02))
   plot_name<-mssa_names[j]
-  savePlot(paste(plot_name,"test_",out_prefix,".tiff", sep=""), type="tiff")
+  dev.off()
+  #savePlot(paste(plot_name,"test_",out_prefix,".tiff", sep=""), type="tiff")
   #Sys.sleep(.0) #Once plot drawned and saved, it can be deactivated
-  
 }
 dev.off()
 
 
 
-################################ COMBINED FIG  ############################
+################################ COMBINED FIG FOR TEMPORAL PROFILES FOR LOADINGS ############################
 #idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='month')
 list_fig_MEOT<-vector("list",4)
-list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_4_paper_MEOT1_MEOT3_sequence_spatial_pattern")
-list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_7_paper_MEOT7_MEOT16_sequence_spatial_pattern")
-list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_10_paper_MEOT10_MEOT15_sequence_spatial_pattern")
-list_fig_MEOT[[4]]<- c("MSSA1","MSSA3","Figure_13_paper_MSSA1_MSSA3_sequence_spatial_pattern")
+list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_4_paper_MEOT1_MEOT3_temporal_sequence_pattern")
+list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_7_paper_MEOT7_MEOT16_temporal_sequence_pattern")
+list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_10_paper_MEOT10_MEOT15_temporal_sequence_pattern")
+list_fig_MEOT[[4]]<- c("MSSA1","MSSA3","Figure_13_paper_MSSA1_MSSA3_temporal_sequence_pattern")
 
 MEOT_quadratures<-c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15","MSSA1","MSSA3")
 #MSSA_quadratures<-c("MSSA1","MSSA3")
 
 dat_subset<-subset(dat,select=MEOT_quadratures)
 
-idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')
+idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')  #Create a date object for labels...
 datelabels<-as.character(1:length(idx))
 for (i in 1:length(idx)){
   date_proc<-idx[i]
-  month<-strftime(date_proc, "%b")          # current month of the date being processed
+  month<-strftime(date_proc, "%b")          # extract current month of the date being processed
   day<-strftime(date_proc, "%d")
   year<-strftime(date_proc, "%y")  #Use y instead of Y for 2 digits
   datelabels[i]<-paste(year,sep="")
@@ -566,7 +576,6 @@ for (i in 1:length(idx)){
 
 X11(width=10,height=14)
 par(mfrow=c(2,1))
-out_prefix<-"MEOT_paper_11052012d_"
 
 for (k in 1:4){
   MEOTa<- list_fig_MEOT[[k]][[1]]
@@ -574,9 +583,9 @@ for (k in 1:4){
   if (MEOTb=="MSSA3"){
     dat_subset[[MEOTb]]<-dat_subset[[MEOTb]]*-1
   }
-  
-  plot(dat_subset[[MEOTa]],type="l",col="blue",axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
-  lines(dat_subset[[MEOTb]],tybe="b",col="darkgreen",axes=FALSE)
+  y_range<-range(dat_subset[[MEOTa]],dat_subset[[MEOTb]])
+  plot(dat_subset[[MEOTa]],type="l",col="blue",ylim=y_range,axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
+  lines(dat_subset[[MEOTb]],tybe="b",lty="dashed",lwd=1.2,col="darkgreen",axes=FALSE)
   breaks_lab<-seq(1,312,by=12)
   axis(side=2)
   #axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
@@ -585,11 +594,11 @@ for (k in 1:4){
   box()
   if (MEOTb!="MSSA3"){
     legend("topleft",legend=c(MEOTa,MEOTb), cex=0.8, col=c("blue","darkgreen"),
-           lty=1,lwd=2)  #lwd=line width
+           lty=c(1,2),lwd=2)  #lwd=line width
   }
   if (MEOTb=="MSSA3"){
     legend("topright",legend=c(MEOTa,MEOTb), cex=0.8, col=c("blue","darkgreen"),
-           lty=1,lwd=2)  #lwd=line width
+           lty=c(1,2),lwd=2)  #lwd=line width
   }
 
   
@@ -624,11 +633,44 @@ for (k in 1:4){
   
 }
 
+
+r1 <- raster("MEOT1test_MEOT_paper_12092012b.tiff")
+r2 <- raster("MEOT3test_MEOT_paper_12092012b.tiff")
+ymin(r2)<-901
+ymax(r2)<-180
+r3<-merge(r1,r2)
+writeRaster(r3,"test.tiff")
+
 dev.off()
 #X11(type="cairo
 ### Add this code...
 lag_cor<-ccf_obj$acf[,,1]  #This is to access cross-cor
 plot(lag_cor*-1)
+
+
+#### PLOTTING EXPLAINED VARIANCE ###
+
+dat_variance<-read.xls(infile3, sheet=2)
+mssa_var<-dat_variance[,2]
+meot_var<-dat_variance[,3]
+x_mode<-dat_variance[,1]
+
+plot_name<-paste("mssa_meot_explained_variance",sep="_")
+png(paste(plot_name,"_",out_prefix,".png", sep=""))
+#X11()
+y_range<-range(c(mssa_var,meot_var))
+plot(mssa_var~x_mode,ylim=y_range,type="n",ylab="Variance explained in percentage",
+     xlab="Mode of variability",
+     data=dat_variance) #Prepare for plotting
+lines(mssa_var~x_mode,col="red",lty=2,type="b",data=dat_variance)  #lty=2 is "dashed"
+points(mssa_var~x_mode,col="red",pch=22,type="b",data=dat_variance)
+lines(meot_var~x_mode,col="blue",lty=1,type="b",data=dat_variance)
+points(meot_var~x_mode,col="blue",pch=1,type="b",data=dat_variance)
+legend("topright",legend=c("MSSA variance", "MEOT variance"), 
+       cex=0.9, col=c("red","blue"),
+       lty=c(2,1),pch=c(22,1))
+#title(paste("Prediction tmax difference and land cover ",sep=""))
+dev.off()
 #################################
 
 # barplot(heights, names.arg=names_ind, axes=FALSE, axisnames=FALSE,
