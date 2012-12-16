@@ -214,9 +214,28 @@ if (is.na(pos)) {
 } 
 absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
 
+
+
+## MSSA1/MSSA3 Lag function
+
+tmp<-ccf(d_z$MSSA1,(d_z$MSSA2), lag=13)  #Note that ccf does not take
+lag_m<- -13:13
+lag_m<-seq(-1*lag_window,lag_window,1)
+
+tmp$lag[,1,1]<-lag_m  #replacign lag values because continuous
+plot(tmp, main="MSSA1 and MSSA3 lag analysis", ylab="Cross-correlation",
+     xlab="Lag (month)", ylim=c(-1,1))
+labels<-c(-13,-11,-9,-7,-5,-3,0,3,5,7,9,11,13)
+
+absext <-max(abs(tmp$acf)) # maximum of the extremum
+pos<-match(absext,tmp$acf) #find the position and lag, if NA it means it was negative
+if (is.na(pos)) {
+  pos<-match(absext*-1,tmp$acf)
+} 
+absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
+
 ##########################################################################
 ### PART II : ANALYSIS FOR PAPER -PREPARING TABLEs: table 2 and table 3
-
 #MEOT tables and figs
 #Table2. Maximum absolute value for lag cross correlations between climate indices and MEOTs (lag in parenthesis).
 
@@ -317,7 +336,6 @@ for (i in 1:length(telind)){
 
     lag_m<-seq(-1*lag_window,lag_window,1)
     ccf_obj$lag[,1,1]<-lag_m  #replacign lag values because continuous
-    #X11(type="cairo") #Cairo because it is macos...?
     plot_name<-paste(telindex, "and", mode_n,"lag analysis",sep="_")
     png(paste(plot_name,"_",out_prefix,".png", sep=""))
     #plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
@@ -375,7 +393,7 @@ save(mssa_obj,file=file_name)
 
 # formated figure for lag correlatioon analysis (bar plot)
 
-### PART III: formated figure for lag correlatioon analysis (bar plot)
+### PART III: formated figure for lag correlation analysis (bar plot)
 
 #MEOT 1 and MEOT3
 
@@ -388,10 +406,11 @@ list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_11_paper_MEOT10_MEOT15_barplot_
 for (i in 1:length(list_fig_MEOT)){
   pos1<-match(list_fig_MEOT[[i]][[1]],names(meot_obj$extremum))
   pos2<-match(list_fig_MEOT[[i]][[2]],names(meot_obj$extremum))
-  plot_name<- paste(list_fig_MEOT[[i]][[3]],"_",out_prefix,".png",sep="")
   names_ind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMO","QBO")
   data_plot<-cbind(as.vector(meot_obj$extremum[pos1]),as.vector(meot_obj$extremum[pos2]))
   
+  #First plot without shading...
+  plot_name<- paste(list_fig_MEOT[[i]][[3]],"_",out_prefix,".png",sep="")
   png(plot_name)
   heights<-as.matrix(t(data_plot))
   barplot(heights,     #data to plot
@@ -400,10 +419,48 @@ for (i in 1:length(list_fig_MEOT)){
           beside=TRUE,                         # see two barplots for comparisons...
           xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
           ylab="Lag crosscorrelation",font.lab=2,
-          col=c("blue","red"), ylim=c(-1,1))
-  grid(nx=12,ny=10)    
-  legend("topright",legend=c(list_fig_MEOT[[i]][[1]],list_fig_MEOT[[i]][[2]]), cex=0.8, col=c("blue","red"),
-         pch=15)
+          col=c("blue","red"),
+          #density=c(0,10),
+          #add=TRUE,
+          ylim=c(-1,1))
+  grid(nx=12,ny=10)
+  legend("topright",legend=c(list_fig_MEOT[[i]][[1]],list_fig_MEOT[[i]][[2]]),pt.cex=0.9,fill=c("blue","red"),bty="n")
+  #no box around legend
+  box()
+  dev.off()
+  
+  #Second plot with shading...
+  #Now add shading to plot
+  plot_name<- paste(list_fig_MEOT[[i]][[3]],"_",out_prefix,"shading.png",sep="")
+  png(plot_name)
+  barplot(heights,     #data to plot
+          #main=paste(names(data_plot)[pos1]," and ",names(data_plot)[pos2],sep=""),
+          names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+          beside=TRUE,                         # see two barplots for comparisons...
+          xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
+          ylab="Lag crosscorrelation",font.lab=2,
+          col=c("blue","red"),
+          #density=c(0,10),
+          #add=TRUE,
+          ylim=c(-1,1))
+  grid(nx=12,ny=10)
+  #legend("topright",legend=c(list_fig_MEOT[[i]][[1]],list_fig_MEOT[[i]][[2]]), cex=0.8, col=c("blue","red"),
+   #      pch=15)
+  barplot(heights,     #data to plot
+          #main=paste(names(data_plot)[pos1]," and ",names(data_plot)[pos2],sep=""),
+          names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+          beside=TRUE,                         # see two barplots for comparisons...
+          xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
+          ylab="Lag crosscorrelation",font.lab=2,
+          col=c("blue","black"),
+          density=c(0,10),
+          add=TRUE,
+          ylim=c(-1,1))
+  #grid(nx=12,ny=10)
+  legend("topright",legend=c(list_fig_MEOT[[i]][[1]],list_fig_MEOT[[i]][[2]]), pt.cex=1,fill=c("blue","red"),bty="n")
+         #density=c(0,10))
+  #legend("topright",legend=c(list_fig_MEOT[[i]][[1]],list_fig_MEOT[[i]][[2]]), pt.cex=1,fill=c("blue","red"),
+  #density=c(0,100),add=TRUE)
   box()
   dev.off()
   
@@ -430,12 +487,40 @@ for (i in 1:length(list_fig_MSSA)){
           xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
           ylab="Lag crosscorrelation",font.lab=2,
           col=c("blue","red"), ylim=c(-1,1))
-  grid(nx=12,ny=10)    
-  
-  legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.8, col=c("blue","red"),
-         pch=15)
+  grid(nx=12,ny=10)      
+  legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.9, fill=c("blue","red"),bty="n")
   box()
   dev.off()
+  
+  plot_name<- paste(list_fig_MSSA[[i]][[3]],"_",out_prefix,"shading.png",sep="")
+  png(plot_name)
+  barplot(heights,     #data to plot
+          #main=paste(names(data_plot)[pos1]," and ",names(data_plot)[pos2],sep=""),
+          names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+          beside=TRUE,                         # see two barplots for comparisons...
+          xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
+          ylab="Lag crosscorrelation",font.lab=2,
+          col=c("blue","red"),
+          #density=c(0,10),
+          #add=TRUE,
+          ylim=c(-1,1))
+  grid(nx=12,ny=10)
+  legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.9, fill=c("blue","red"),bty="n")
+  #legend("topright",legend=c(list_fig_MEOT[[i]][[1]],list_fig_MEOT[[i]][[2]]), cex=0.8, col=c("blue","red"),
+  #      pch=15)
+  barplot(heights,     #data to plot
+          #main=paste(names(data_plot)[pos1]," and ",names(data_plot)[pos2],sep=""),
+          names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+          beside=TRUE,                         # see two barplots for comparisons...
+          xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
+          ylab="Lag crosscorrelation",font.lab=2,
+          col=c("blue","black"),
+          density=c(0,10),
+          add=TRUE,
+          ylim=c(-1,1))
+  #grid(nx=12,ny=10)
+  legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.9, fill=c("blue","red"),bty="n")
+  
 }
 
 ##################### CREATING MEOT PLOTS ON 12/09/2012 ON ATLAS: Revised fig for paper...  #################
@@ -511,7 +596,10 @@ lf_list<-vector("list",2)
 #lf_list[[1]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_1.rst")
 lf_list[[1]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_1.rst")
 lf_list[[2]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_3.rst")
+lf_list[[2]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_2.rst")
+
 mssa3_rast<-meot_rast*-1
+temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
 
 #"anom_sst_1982_2007_MSSA_Center_Std_mssa3_S-Mode_CompLoadingImg_1.rst"
 X11(width=24,height=12)    
