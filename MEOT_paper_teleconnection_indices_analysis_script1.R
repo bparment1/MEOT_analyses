@@ -5,7 +5,7 @@
 #and MSSA analyses generated at Clark Labs.                                                     #
 #Note that spatial patterns from MEOT and MSSA components are not analyzed in this script       #                 #
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 12/19/2012            
+#DATE: 12/21/2012            
 #Version: 4
 #PROJECT: Clark Labs Climate predction- MEOT/MSSA paper                                         #
 #################################################################################################
@@ -35,23 +35,23 @@ infile3<-"MEOT_MSSA_Telcon_indices_12112012.xlsx"                        #LST da
 
 #path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/"
 #on MAC:
-path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysis_R_10102012"
+#path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysis_R_10102012"
 #path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/MEOT_analysis_R_10102012"
 # on Atlas:
-#path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysis_R_10102012"
-path_raster<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
+path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysis_R_10102012"
+#path_raster<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
 
 
 setwd(path)
 
-out_prefix<-"MEOT_paper_12192012_"
+out_prefix<-"MEOT_paper_12212012b_"
 telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
 mode_list_MEOT<-c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
-mode_list_MEOT<-paste("MEOT",1:25,sep="")
+#mode_list_MEOT<-paste("MEOT",1:25,sep="")
 #c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
 
 mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")    
-mode_list_PCA<-paste("MSSA",1:15,sep="")
+#mode_list_PCA<-paste("MSSA",1:15,sep="")
 
 lag_window<-13
 
@@ -387,13 +387,13 @@ for (i in 1:length(telind)){
   for (j in 1:length(mode_list)){
     mode_n<-mode_list[j]
     pos2<-match(mode_n,names(d_z))
-    if(mode_n=="MSSA3"){
-      ccf_obj<-ccf(d_z[,pos1],(d_z[,pos2]*-1), lag=13)  #Addded on 11/06
-    } 
-    if(mode_n!="MSSA3"){
-      ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13)  #Addded on 11/06
-    }
-    #ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13)  #Note that ccf does not take
+    #if(mode_n=="MSSA3"){
+    #  ccf_obj<-ccf(d_z[,pos1],(d_z[,pos2]*-1), lag=13)  #Addded on 11/06
+    #} 
+    #if(mode_n!="MSSA3"){
+    #  ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13)  #Addded on 11/06
+    #}
+    ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13)  #Note that ccf does not take
 
     lag_m<-seq(-1*lag_window,lag_window,1)
     ccf_obj$lag[,1,1]<-lag_m  #replacign lag values because continuous
@@ -528,6 +528,9 @@ for (i in 1:length(list_fig_MEOT)){
   
 }
 
+#######
+######## BARPLOT FOR MSSA...#############
+
 list_fig_MSSA<-vector("list",3)
 list_fig_MSSA[[1]]<- c("MSSA1","MSSA3","Figure_18_paper_MSSA1_MSSA3_barplot_lag_crosscorrelation")
 list_fig_MSSA[[2]]<- c("MSSA2","MSSA4","Figure_19_paper_MSSA2_MSSA4_barplot_lag_crosscorrelation")
@@ -585,7 +588,7 @@ for (i in 1:length(list_fig_MSSA)){
   
 }
 
-##################### CREATING MEOT PLOTS ON 12/09/2012 ON ATLAS: Revised fig for paper...  #################
+##################### CREATING MEOT SPATIAL SEQUENCE-PLOT ON 12/09/2012 ON ATLAS: Revised fig for paper...  #################
 ################# PLOT EEOT1
 # On Mac Benoit
 path_data<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MSSA_paper/Data_paper/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
@@ -599,20 +602,15 @@ lf_list[[3]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_7.rst")
 lf_list[[4]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_16.rst")
 lf_list[[5]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_10.rst")
 lf_list[[6]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_15.rst")
+lf_list[[6]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_4.rst")
 #list_meot[[]]
-col.breaks <- pretty(s.range, n=100)
-lab.breaks <- pretty(s.range, n=5)
-temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
-#temp.colors <- colorRampPalette(c('blue', 'yellow3', 'red'))
+#col.breaks <- pretty(s.range, n=100)
+#lab.breaks <- pretty(s.range, n=5)
+
 temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
-#temp.colors <- colorRampPalette(c('blue', 'lightyellow1', 'red'))
-#temp.colors <- colorRampPalette(c('blue', 'lightyellow2', 'red'))
-#temp.colors <- colorRampPalette(c('blue', 'lightyellow3', 'red'))
-#temp.colors <- colorRampPalette(c('blue', 'lightyellow4', 'red'))
 
 X11(width=24,height=12)   
 #X11(width=24,height=24)
-par(mfrow=c(2,1))
 meot_names<-c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15")
 mask_land<-raster("mask_rgf_1_1.rst")
 mask_land[mask_land==0]<-NA
@@ -625,8 +623,7 @@ list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_3_paper_MEOT1_MEOT3_sequence_spat
 list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_6_paper_MEOT7_MEOT16_sequence_spatial_pattern")
 list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_9_paper_MEOT10_MEOT15_sequence_spatial_pattern")
 
-#par(mfrow=c(2,1))
-out_prefix<-"MEOT_paper_12092012b"
+out_prefix<-"MEOT_paper_12212012b"
 for (j in 1:length(lf_list)){
   j=j+1
   #Sys.sleep(.3) #added to control plot time
@@ -652,38 +649,38 @@ dev.off()
 #path_data<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MSSA_paper/Data_paper/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
 # On Atlas:
 path_data<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
-path_data<-path_raster
+#path_data<-path_raster
 setwd(path_data)
 lf_list<-vector("list",2)
 
 #lf_list[[1]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_1.rst")
 lf_list[[1]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_1.rst")
 lf_list[[2]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_3.rst")
-lf_list[[2]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_2.rst")
-lf_list[[1]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_7.rst")
-lf_list[[2]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_8.rst")
+#lf_list[[1]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_2.rst")
+#lf_list[[1]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_7.rst")
+#lf_list[[2]]<-list.files(pattern="anom_sst_1982_2007_MSSA_Center_Std_mssa.*_S-Mode_CompLoadingImg_8.rst")
 
 temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
 
 #"anom_sst_1982_2007_MSSA_Center_Std_mssa3_S-Mode_CompLoadingImg_1.rst"
 X11(width=24,height=12)    
-quartz(width=24,height=12)    
+#quartz(width=24,height=12)    
 
 mask_land<-raster("mask_rgf_1_1.rst")
 mask_land[mask_land==0]<-NA
 
 mssa_names<-c("MSSA1","MSSA3")
-out_prefix<-"MEOT_paper_12092012b_"
+out_prefix<-"MEOT_paper_12212012b_"
 for (j in 1:length(lf_list)){
   j=j+1
   #Sys.sleep(.3) #added to control plot time
   plot_name<-mssa_names[j]
-  pdf(width=24,height=12,onefile=F,file=paste(plot_name,"test_",out_prefix,".pdf", sep=""))
+  #pdf(width=24,height=12,onefile=F,file=paste(plot_name,"test_",out_prefix,".pdf", sep=""))
 
   lf<-mixedsort(lf_list[[j]])  #Use mixedsort instead of "sort" to take into account the 
   meot_rast<-stack(lf)
   layerNames(meot_rast)<-paste("Lag", 0:12,sep=" ")
-  if (mssa_names[j]=="MSSA3"){
+  if (mssa_names[j]=="MSSA5"){
     meot_rast<-meot_rast*-1
   }
   meot_rast_m<-mask(meot_rast,mask_land)
@@ -694,13 +691,11 @@ for (j in 1:length(lf_list)){
             par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
             col.regions=temp.colors,at=seq(-1,1,by=0.02))
   plot_name<-mssa_names[j]
-  dev.off()
-  #savePlot(paste(plot_name,"test_",out_prefix,".tiff", sep=""), type="tiff")
+  #dev.off()
+  savePlot(paste(plot_name,"test_",out_prefix,".tiff", sep=""), type="tiff")
   #Sys.sleep(.0) #Once plot drawned and saved, it can be deactivated
 }
 dev.off()
-
-
 
 ################################ COMBINED FIG FOR TEMPORAL PROFILES FOR LOADINGS ############################
 #idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='month')
@@ -734,10 +729,10 @@ par(mfrow=c(2,1))
 for (k in 1:4){
   MEOTa<- list_fig_MEOT[[k]][[1]]
   MEOTb<- list_fig_MEOT[[k]][[2]]
-  if (MEOTb=="MSSA3"){
-    dat_subset[[MEOTb]]<-dat_subset[[MEOTb]]*-1
-  }
-  y_range<-range(dat_subset[[MEOTa]],dat_subset[[MEOTb]])
+  #if (MEOTb=="MSSA3"){
+  #  dat_subset[[MEOTb]]<-dat_subset[[MEOTb]]*-1
+  #}
+  y_range<-range(dat_sub=set[[MEOTa]],dat_subset[[MEOTb]])
   plot(dat_subset[[MEOTa]],type="l",col="blue",ylim=y_range,axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
   lines(dat_subset[[MEOTb]],tybe="b",lty="dashed",lwd=1.2,col="darkgreen",axes=FALSE)
   breaks_lab<-seq(1,312,by=12)
@@ -761,9 +756,9 @@ for (k in 1:4){
   #add second plot
   pos1<-match(MEOTa,names(d_z))
   pos2<-match(MEOTb,names(d_z))
-  if (MEOTb=="MSSA3"){
-    ccf_obj<-ccf(d_z[,pos1],d_z[,pos2]*-1, lag=13,plot=FALSE)  #Note that MSSA3 needs to be reversed...11/06
-  }
+  #if (MEOTb=="MSSA3"){
+  #  ccf_obj<-ccf(d_z[,pos1],d_z[,pos2]*-1, lag=13,plot=FALSE)  #Note that MSSA3 needs to be reversed...11/06
+  #}
   ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13,plot=FALSE)  #Note that ccf does not take
   lag_m<-seq(-1*lag_window,lag_window,1)
   ccf_obj$lag[,1,1]<-lag_m  #replacign lag values because continuous
