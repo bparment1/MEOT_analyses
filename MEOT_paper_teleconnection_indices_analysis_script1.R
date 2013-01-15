@@ -44,7 +44,7 @@ path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysi
 
 setwd(path)
 
-out_prefix<-"MEOT_paper_12212012b_"
+out_prefix<-"MEOT_paper_01152013b_"
 telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
 mode_list_MEOT<-c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
 #mode_list_MEOT<-paste("MEOT",1:25,sep="")
@@ -193,7 +193,7 @@ if (is.na(pos)) {
   pos<-match(absext*-1,tmp$acf)
 } 
 absext_lag<-tmp$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
-quartz(6,10)
+X11(6,10)
 plot(d_z$MEOT7,col="blue",ylim=c(-1,1))
 par(new=T)
 plot(d_z$MEOT16,col="green", ylim=c(-1,1),axes=F)
@@ -602,7 +602,7 @@ lf_list[[3]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_7.rst")
 lf_list[[4]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_16.rst")
 lf_list[[5]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_10.rst")
 lf_list[[6]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_15.rst")
-lf_list[[6]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_4.rst")
+#lf_list[[6]]<-list.files(pattern="lag.*_sst_anom_LM_Partial_R_4.rst")
 #list_meot[[]]
 #col.breaks <- pretty(s.range, n=100)
 #lab.breaks <- pretty(s.range, n=5)
@@ -622,8 +622,8 @@ list_fig_MEOT<-vector("list",3)
 list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_3_paper_MEOT1_MEOT3_sequence_spatial_pattern")
 list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_6_paper_MEOT7_MEOT16_sequence_spatial_pattern")
 list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_9_paper_MEOT10_MEOT15_sequence_spatial_pattern")
-
-out_prefix<-"MEOT_paper_12212012b"
+setwd(path_data)
+out_prefix<-"MEOT_paper_01152012b"
 for (j in 1:length(lf_list)){
   j=j+1
   #Sys.sleep(.3) #added to control plot time
@@ -670,7 +670,7 @@ mask_land<-raster("mask_rgf_1_1.rst")
 mask_land[mask_land==0]<-NA
 
 mssa_names<-c("MSSA1","MSSA3")
-out_prefix<-"MEOT_paper_12212012b_"
+#out_prefix<-"MEOT_paper_12212012b_"
 for (j in 1:length(lf_list)){
   j=j+1
   #Sys.sleep(.3) #added to control plot time
@@ -732,7 +732,7 @@ for (k in 1:4){
   #if (MEOTb=="MSSA3"){
   #  dat_subset[[MEOTb]]<-dat_subset[[MEOTb]]*-1
   #}
-  y_range<-range(dat_sub=set[[MEOTa]],dat_subset[[MEOTb]])
+  y_range<-range(dat_subset[[MEOTa]],dat_subset[[MEOTb]])
   plot(dat_subset[[MEOTa]],type="l",col="blue",ylim=y_range,axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
   lines(dat_subset[[MEOTb]],tybe="b",lty="dashed",lwd=1.2,col="darkgreen",axes=FALSE)
   breaks_lab<-seq(1,312,by=12)
@@ -798,7 +798,7 @@ plot(lag_cor*-1)
 
 
 #### PLOTTING EXPLAINED VARIANCE ###
-
+setwd(path)
 dat_variance<-read.xls(infile3, sheet=2)
 mssa_var<-dat_variance[,2]
 meot_var<-dat_variance[,3]
