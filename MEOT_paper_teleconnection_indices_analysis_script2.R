@@ -62,14 +62,15 @@ mask_land_NA<-mask_land
 mask_land_NA[mask_land_NA==0]<-NA
 SST_rast<-mask(SST_s,mask_land_NA,filename="ANOM_SST_1982_2007.tif",overwrite=TRUE)
 class(SST_rast)
-
+SST1_m<-subset(SST_rast,1)
+plot(stack(SST1,SST1_m))
 #Need to add weighting scheme base on lat long...
 #SST_sgdf<-as(SST_rast,"SpatialGridDataFrame")
-SST_df<-as.data.frame(SST_sgdf) #drop the coordinates x and y
-rm(SST_sgdf)
-cor.matrix.1<-cor(SST_df,use="complete")  
+SST_df<-as.data.frame(SST_rast) #drop the coordinates x and y
+#rm(SST_sgdf)
+#cor.matrix.1<-cor(SST_df,use="complete")  
 #cor.matrix.1<-layerStats(SST_rast,"pearson")
-
+SST1
 pca.2 <- principal(r = cor.matrix.1, nfactors = 20, residuals = FALSE, rotate = "varimax")
 pca_varimax<-principal(r=SST_df, nfactors = 20, residuals = FALSE, rotate = "varimax",scores=TRUE)
 #components are stored in the pca_varimax$scores
@@ -80,7 +81,7 @@ plot(pca.2)
 lag_nb<-13
 #lf_l1<-lag(lf,k=lag_nb)
 
-function(lag_window,list_lf){
+lag_grouping<-function(lag_window,list_lf){
   list_lf<-vector("list",lag_window)
   for (j in 1:lag_window){
     index1<-j
@@ -96,10 +97,59 @@ function(lag_window,list_lf){
     }
     list_t[[i]]<-list_tmp
   }
-  list_obj<-c(list_lf,list_t)
+  list_obj<-list(list_lf,list_t)
   names(list_obj)<-c("list_lf","list_t")
   return(list_obj)
 }
+
+lag_list_obj<-lag_grouping(lag_window,lf) 
+#list_lf contains gorupings of files for every lag (13 groups if lag_window is 13)
+#list_t contains gorupings of files for every lag (13 groups if lag_window is 13)
+
+### Write a function to set up the array
+
+nt<- length(lf)-lag_window+1 #time dimension
+nl<- lag_window #lag dimenstion 
+ns<- ncell(SST1)
+dimension<-list(nt,ntl,ns)
+list_lf<-lag_list_obj$list_lf
+
+array_preparation_fun<-function(dimension,SST_rast){
+
+  #fill in
+  nt<- length(lf)-lag_window+1 #time dimension
+  nl<- lag_window #lag dimenstion 
+  ns<- ncell(SST1)
+  
+  SST_array<-array(dim=c(ns,nt,nl))
+  
+  for (j in 1:lag_window){
+    list_lag<-list_lf[[j]]
+    x<-SST_sgdf[list_lag]
+    x<-as.matrix(x)
+    SST_array[,,j]<-SST_sgdf[list_lag]
+  }
+}
+SST_df<-as.data.frame(SST_sgdf)
+
+nt<- length(lf)-lag_window+1 #time dimension
+nl<- lag_window #lag dimenstion 
+ns<- ncell(SST1)
+
+
+dim(SST_array[,,1]) # slice of 64800 by 300 or ns*nt for lag 1
+layerNames(SST_rast)<-lf
+SST_sgdf<-as(SST_rast,"SpatialGridDataFrame")
+SST_df<-as.data.frame(SST_rast) #drop the coordinates x and y
+
+#312*64800/(300*64800*13)=0.08 0r about 12.5 more pixels...
+#64800*13
+#need to add x,y,w column where w=weight which is a function of lat...
+
+#SST_array[,,1]<- as.data.frame(stack(lag_list_obj$list_lf[[1]]))
+subset(SST_sgdf,SST_sgdf)
+
+
 
 t1<-stack(list_t[[1]])
 levelplot(t1)
@@ -133,4 +183,3 @@ for (j in 1:lag_window){
 
 mosaic together
 #change extent for each of layer
-
