@@ -1,10 +1,10 @@
 ####################################    MEOT-MSSA PAPER   #######################################
 ############################      SCRIPT 2- MEOT          #######################################
-#This script carries out a MSSA with varimax rotation for a timeseries of 312 images.            #
+#This script carries out a MSSA with varimax rotation for a timeseries of 312 SST images.       #
 #Note that spatial patterns from MEOT and MSSA components are not analyzed in this script       #                 
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 03/09/2013            
-#Version: 4
+#DATE: 03/13/2013            
+#Version: 2
 #PROJECT: Clark Labs Climate predction- MEOT/MSSA paper                                         #
 #################################################################################################
 
@@ -24,6 +24,7 @@ library(zoo)                                 # basic package for time series ana
 #library(forecast)                            # package containing ARIMA procedures
 library(rasterVis)
 library(psych)
+library(GPArotation)
 ### Parameters and argument
 
 infile1<-"SAODI-01-1854_06-2011_test.asc"             #GHCN shapefile containing variables for modeling 2010                 
@@ -50,7 +51,7 @@ mode_list_MEOT<-c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
 #mode_list_MEOT<-paste("MEOT",1:25,sep="")
 #c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
 
-out_prefix<-"MEOT_paper_02102013"
+out_prefix<-"MEOT_paper_03142013"
 
 lf<-mixedsort(list.files(pattern="ANOM_SST.*.rst"))
 SST_s<-stack(lf)
@@ -62,24 +63,30 @@ mask_land_NA<-mask_land
 mask_land_NA[mask_land_NA==0]<-NA
 SST_rast<-mask(SST_s,mask_land_NA,filename="ANOM_SST_1982_2007.tif",overwrite=TRUE)
 class(SST_rast)
+
+#Multiply layer by weight
+
+lat_coord<-coordinates(SST_rast)[,2]
+w_rast<-mask_land
+values(w_rast)<-lat_coord
+w_rast<-mask(w_rast,mask_land_NA)
+
+SST_rast<-SST_rast*w_rast #Maybe use overlay to avoid putting in memory?
+writeRaster(SST_rast,filename="ANOM_SST_1982_2007_weighted.tif",overwrite=TRUE)
+rm(SST_rast)
+SST_rast<-brick("ANOM_SST_1982_2007_weighted.tif")
+
 SST1_m<-subset(SST_rast,1)
 plot(stack(SST1,SST1_m))
+rm(SST1,SST1_m)
 #Need to add weighting scheme base on lat long...
-#SST_sgdf<-as(SST_rast,"SpatialGridDataFrame")
-SST_df<-as.data.frame(SST_rast) #drop the coordinates x and y
-#rm(SST_sgdf)
-#cor.matrix.1<-cor(SST_df,use="complete")  
-#cor.matrix.1<-layerStats(SST_rast,"pearson")
-SST1
-pca.2 <- principal(r = cor.matrix.1, nfactors = 20, residuals = FALSE, rotate = "varimax")
-pca_varimax<-principal(r=SST_df, nfactors = 20, residuals = FALSE, rotate = "varimax",scores=TRUE)
-#components are stored in the pca_varimax$scores
-plot(pca.2)
+SST_sgdf<-as(SST_rast,"SpatialGridDataFrame")
+#SST_df<-as.data.frame(SST_rast) #drop the coordinates x and y
+SST_df<-as.data.frame(SST_sgdf)
+rm(SST_sgdf)
 
 ### TO DO ... format the data for MSSA create a function for the window of any size ...use lag???
 #unction ot lage files
-lag_nb<-13
-#lf_l1<-lag(lf,k=lag_nb)
 
 lag_grouping<-function(lag_window,list_lf){
   list_lf<-vector("list",lag_window)
@@ -102,84 +109,144 @@ lag_grouping<-function(lag_window,list_lf){
   return(list_obj)
 }
 
+nt<- length(lf)-lag_window+1 #time dimension
+nl<- lag_window #lag dimenstion 
+ns<- ncell(SST1)
+dimension<-list(nt,nl,ns)
+ns_NA<-nrow(SST_df)
 lag_list_obj<-lag_grouping(lag_window,lf) 
 #list_lf contains gorupings of files for every lag (13 groups if lag_window is 13)
 #list_t contains gorupings of files for every lag (13 groups if lag_window is 13)
-
-### Write a function to set up the array
-
-nt<- length(lf)-lag_window+1 #time dimension
-nl<- lag_window #lag dimenstion 
-ns<- ncell(SST1)
-dimension<-list(nt,ntl,ns)
 list_lf<-lag_list_obj$list_lf
-
-array_preparation_fun<-function(dimension,SST_rast){
-
-  #fill in
-  nt<- length(lf)-lag_window+1 #time dimension
-  nl<- lag_window #lag dimenstion 
-  ns<- ncell(SST1)
-  
-  SST_array<-array(dim=c(ns,nt,nl))
-  
-  for (j in 1:lag_window){
-    list_lag<-list_lf[[j]]
-    x<-SST_sgdf[list_lag]
-    x<-as.matrix(x)
-    SST_array[,,j]<-SST_sgdf[list_lag]
-  }
-}
-SST_df<-as.data.frame(SST_sgdf)
-
-nt<- length(lf)-lag_window+1 #time dimension
-nl<- lag_window #lag dimenstion 
-ns<- ncell(SST1)
-
-
-dim(SST_array[,,1]) # slice of 64800 by 300 or ns*nt for lag 1
-layerNames(SST_rast)<-lf
-SST_sgdf<-as(SST_rast,"SpatialGridDataFrame")
-SST_df<-as.data.frame(SST_rast) #drop the coordinates x and y
-
-#312*64800/(300*64800*13)=0.08 0r about 12.5 more pixels...
-#64800*13
-#need to add x,y,w column where w=weight which is a function of lat...
-
-#SST_array[,,1]<- as.data.frame(stack(lag_list_obj$list_lf[[1]]))
-subset(SST_sgdf,SST_sgdf)
-
-
-
-t1<-stack(list_t[[1]])
-levelplot(t1)
-df1<-as.data.frame(t1)
-df1_v<-as.vector(t(df1))   #This transform the data frame into a one colum
-
-t2<-stack(list_t[[2]])
-levelplot(t2)
-df2<-as.data.frame(t2)
-df2_v<-as.vector(t(df2))   #This transform the data frame into a one colum
-head(df2)
-test<-rbind(df1[,1],df1[,2])
-#MSSA1_l<-lag(d_z$MSSA1,k=lag_nb)
-
-SST1
-ncol_concat<-ncol(SST1)*lag_window
-test<-raster(nrow=nrow(SST1),ncol=ncol_concat)
-#MSSA3_l<-lag(d_z$MSSA3,k=lag_nb)
-projection(test)<-NA
-extent(test)<-c(1,ncol_concat+1,1,181)
-
-j=lag_number
-projection(t1_1)<-NA
-j=1
-
-t1_1<-subset(t1,1)
-t1_2<-subset(t1,2)
+list_lag_df<-vector("list",length(lag_window))
+names(SST_df)<-c(lf,"s1","s2")
+new_names<-paste("t",1:nt,sep="_")
 for (j in 1:lag_window){
-  extent(t1_1)<-c(1+(360*j),361+(360*j),1,181)
+  list_lag<-list_lf[[j]]
+  lag_names<-c(list_lag,"s1","s2")
+  list_lag_df[[j]]<-SST_df[lag_names]
+  names(list_lag_df[[j]])<-c(new_names,"s1","s2")
+  list_lag_df[[j]]$lag<-rep(j,ns_NA)
+  #standardize in time? the rows...
 }
 
-mosaic together
-#change extent for each of layer
+SST_lag_data_df<-do.call(rbind,list_lag_df)
+rm(list_lag_df)
+save(SST_lag_data_df,file= paste("SST_lag_data_df_",out_prefix,".RData",sep=""))
+#scale on the on the row to standardize pixel value in time?
+
+#load("~/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/SST_1982_2007/SST_lag_data_df_MEOT_paper_03122013.RData")
+
+X<-as.matrix(SST_lag_data_df[,1:nt])
+Xt<-t(X)
+Xt<-scale(Xt)
+X<-t(Xt)
+cX<-Xt%*%X
+
+pca_varimax<-principal(r=cX, nfactors = 20, residuals = FALSE, rotate = "varimax")
+Xpc <-predict(pca_varimax,X)
+
+#pca.2 <- principal(r = cor.matrix.1, nfactors = 20, residuals = FALSE, rotate = "varimax")
+#pca_varimax<-principal(r=SST_df, nfactors = 20, residuals = FALSE, rotate = "varimax",scores=TRUE)
+#pca_varimax<-principal(r=SST_lag_data_df[,1:nt], nfactors = 20, residuals = FALSE, rotate = "varimax",scores=TRUE)
+
+save(pca_varimax,file= paste("pca_varimax_SST_lag_data_df_",out_prefix,".RData",sep=""))
+save(X,file= paste("SST_lag_data_matrix_nt_",out_prefix,".RData",sep=""))
+save(Xpc,file= paste("SST_lag_data_matrix_components_",out_prefix,".RData",sep=""))
+save(X_pc_data,file= paste("SST_lag_data_components_",out_prefix,".RData",sep=""))
+
+plot(pca_varimax)
+dim(Xpc)
+SST_xy_lag<-SST_lag_data_df[,301:303]
+X_pc_data<-as.data.frame(Xpc)
+X_pc_data<-cbind(X_pc_data,SST_xy_lag)
+
+coordinates(X_pc_data)<-X_pc_data[,c("s1","s2")]
+
+#################################
+# nt<- length(lf)-lag_window+1 #time dimension
+# nl<- lag_window #lag dimenstion 
+# ns<- ncell(SST1)
+# dimension<-list(nt,ntl,ns)
+# list_lf<-lag_list_obj$list_lf
+# list_lag_df<-vector("list",length(lag_window))
+# 
+# array_preparation_fun<-function(dimension,SST_rast){
+# 
+#   #fill in
+#   nt<- length(lf)-lag_window+1 #time dimension
+#   nl<- lag_window #lag dimenstion 
+#   ns<- ncell(SST1)
+#   
+#   SST_array<-array(dim=c(ns,nt,nl))
+#   
+#   for (j in 1:lag_window){
+#     list_lag<-list_lf[[j]]
+#     #x<-SST_sgdf[list_lag]
+#     SST_array[,,j]<-as.matrix(SST_df[list_lag])
+#     #x<-as.matrix(x)
+#     #SST_array[,,j]<-SST_sgdf[list_lag]
+#   }
+# }
+# SST_df<-as.data.frame(SST_sgdf)
+# 
+# nt<- length(lf)-lag_window+1 #time dimension
+# nl<- lag_window #lag dimenstion 
+# ns<- ncell(SST1)
+# 
+# 
+# dim(SST_array[,,1]) # slice of 64800 by 300 or ns*nt for lag 1
+# layerNames(SST_rast)<-lf
+# SST_sgdf<-as(SST_rast,"SpatialGridDataFrame")
+# SST_df<-as.data.frame(SST_rast) #drop the coordinates x and y
+# 
+# #312*64800/(300*64800*13)=0.08 0r about 12.5 more pixels...
+# #64800*13
+# #need to add x,y,w column where w=weight which is a function of lat...
+# 
+# #SST_array[,,1]<- as.data.frame(stack(lag_list_obj$list_lf[[1]]))
+# subset(SST_sgdf,SST_sgdf)
+# 
+# 
+# t1<-stack(list_t[[1]])
+# levelplot(t1)
+# df1<-as.data.frame(t1)
+# df1_v<-as.vector(t(df1))   #This transform the data frame into a one colum
+# 
+# t2<-stack(list_t[[2]])
+# levelplot(t2)
+# df2<-as.data.frame(t2)
+# df2_v<-as.vector(t(df2))   #This transform the data frame into a one colum
+# head(df2)
+# test<-rbind(df1[,1],df1[,2])
+# #MSSA1_l<-lag(d_z$MSSA1,k=lag_nb)
+# 
+# SST1
+# ncol_concat<-ncol(SST1)*lag_window
+# test<-raster(nrow=nrow(SST1),ncol=ncol_concat)
+# #MSSA3_l<-lag(d_z$MSSA3,k=lag_nb)
+# projection(test)<-NA
+# extent(test)<-c(1,ncol_concat+1,1,181)
+# 
+# j=lag_number
+# projection(t1_1)<-NA
+# j=1
+# 
+# t1_1<-subset(t1,1)
+# t1_2<-subset(t1,2)
+# #Use the shitf function from the raster package???
+# for (j in 1:lag_window){
+#   extent(t1_1)<-c(1+(360*j),361+(360*j),1,181)
+# }
+# 
+# #mosaic together
+# #change extent for each of layer
+
+#https://stat.ethz.ch/pipermail/r-help/2004-February/046067.html
+#loadings(fa)
+#new <- varimax(fa$loadings, normalize = FALSE)
+#class(new$loadings) <- "loadings"
+#loadings(new)
+
+# ML with varimax rotation:
+#fact(x=life,method="norm",rotation="varimax",maxfactors=3)
