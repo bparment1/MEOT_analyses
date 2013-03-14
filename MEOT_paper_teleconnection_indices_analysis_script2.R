@@ -68,7 +68,7 @@ class(SST_rast)
 
 lat_coord<-coordinates(SST_rast)[,2]
 w_rast<-mask_land
-values(w_rast)<-lat_coord
+values(w_rast)<-cos(lat_coord) #use area in raster package for weight of a cell??
 w_rast<-mask(w_rast,mask_land_NA)
 
 SST_rast<-SST_rast*w_rast #Maybe use overlay to avoid putting in memory?
@@ -156,13 +156,22 @@ save(Xpc,file= paste("SST_lag_data_matrix_components_",out_prefix,".RData",sep="
 save(X_pc_data,file= paste("SST_lag_data_components_",out_prefix,".RData",sep=""))
 
 plot(pca_varimax)
+
+### STEP 4: get lag images for MSSA/PCA
+
 dim(Xpc)
-SST_xy_lag<-SST_lag_data_df[,301:303]
+SST_xy_lag<-SST_lag_data_df[,nt:ncol(SST_lag_data_df)]
 X_pc_data<-as.data.frame(Xpc)
 X_pc_data<-cbind(X_pc_data,SST_xy_lag)
 
 coordinates(X_pc_data)<-X_pc_data[,c("s1","s2")]
+#loop through k and j with j being lag index
+tmp<-subset(X_pc_data,X_pc_data$lag==1 & X_pc_data[,k)
+pc1_l1<-rasterize(tmp,SST1_m)??
 
+
+### END OF SCRIPT...
+#pc1_l2...
 #################################
 # nt<- length(lf)-lag_window+1 #time dimension
 # nl<- lag_window #lag dimenstion 
