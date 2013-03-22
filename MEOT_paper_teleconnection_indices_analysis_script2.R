@@ -3,8 +3,8 @@
 #This script carries out a MSSA with varimax rotation for a timeseries of 312 SST images.       #
 #Note that spatial patterns from MEOT and MSSA components are not analyzed in this script       #                 
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 03/13/2013            
-#Version: 2
+#DATE: 03/22/2013            
+#Version: 3
 #PROJECT: Clark Labs Climate predction- MEOT/MSSA paper                                         #
 #################################################################################################
 
@@ -25,70 +25,30 @@ library(zoo)                                 # basic package for time series ana
 library(rasterVis)
 library(psych)
 library(GPArotation)
-### Parameters and argument
 
-infile1<-"SAODI-01-1854_06-2011_test.asc"             #GHCN shapefile containing variables for modeling 2010                 
-infile2<-"SAODI-01-1854_06-2011.csv"                     #List of 10 dates for the regression
-#infile2<-"list_365_dates_04212012.txt"
-infile3<-"MEOT_MSSA_Telcon_indices_08062012.xlsx"                        #LST dates name
-infile3<-"MEOT_MSSA_Telcon_indices_12112012.xlsx"                        #LST dates name
-infile4<-"mask_rgf_1_1.rst"
-
-path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysis_R_10102012"
-in_path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/MEOT10232011/anom_sst_1982_2007/components"
-in_path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/SST_1982_2007"
-setwd(in_path)
-
-#path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/"
-#on MAC:
-#path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysis_R_10102012"
-#path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/MEOT_analysis_R_10102012"
-# on Atlas:
-#path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysis_R_10102012"
-#path_raster<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
-telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
-mode_list_MEOT<-c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
-#mode_list_MEOT<-paste("MEOT",1:25,sep="")
-#c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
-
-out_prefix<-"MEOT_paper_03142013"
-
-lf<-mixedsort(list.files(pattern="ANOM_SST.*.rst"))
-SST_s<-stack(lf)
-SST1<-raster(lf[1])
-lag_window<-13
-
-mask_land<-raster(infile4)
-mask_land_NA<-mask_land
-mask_land_NA[mask_land_NA==0]<-NA
-SST_rast<-mask(SST_s,mask_land_NA,filename="ANOM_SST_1982_2007.tif",overwrite=TRUE)
-class(SST_rast)
-
-#Multiply layer by weight
-
-lat_coord<-coordinates(SST_rast)[,2]
-w_rast<-mask_land
-values(w_rast)<-cos(lat_coord) #use area in raster package for weight of a cell??
-w_rast<-mask(w_rast,mask_land_NA)
-
-SST_rast<-SST_rast*w_rast #Maybe use overlay to avoid putting in memory?
-writeRaster(SST_rast,filename="ANOM_SST_1982_2007_weighted.tif",overwrite=TRUE)
-rm(SST_rast)
-SST_rast<-brick("ANOM_SST_1982_2007_weighted.tif")
-
-SST1_m<-subset(SST_rast,1)
-plot(stack(SST1,SST1_m))
-rm(SST1,SST1_m)
-#Need to add weighting scheme base on lat long...
-SST_sgdf<-as(SST_rast,"SpatialGridDataFrame")
-#SST_df<-as.data.frame(SST_rast) #drop the coordinates x and y
-SST_df<-as.data.frame(SST_sgdf)
-rm(SST_sgdf)
+## Functions used in the script
 
 ### TO DO ... format the data for MSSA create a function for the window of any size ...use lag???
 #unction ot lage files
 
 lag_grouping<-function(lag_window,list_lf){
+  #This function creates groups of variables corresponding to lag based on a list of files.
+  #It requires 2 inputs:                                           
+  # 1) lag_window: sed
+  # 2) list_lf: list of names of variables from the a time series
+  #The output is a list of four shapefile names produced by the function:
+  # 1) list_obj with two lists:
+  #  -list_lf contains gorupings of files for every lag (13 groups if lag_window is 13)
+  #  -list_t contains gorupings of files for every lag (13 groups if lag_window is 13)
+  
+  
+  #AUTHOR: Benoit Parmentier                                                                       
+  #DATE: 03/22/2013                                                                                 
+  #PROJECT: Clark Labs Climate predction- MEOT/MSSA paper     
+  #Comments and TODO
+  #
+  ##################################################################################################
+  
   list_lf<-vector("list",lag_window)
   for (j in 1:lag_window){
     index1<-j
@@ -109,11 +69,123 @@ lag_grouping<-function(lag_window,list_lf){
   return(list_obj)
 }
 
+### Parameters and argument
+
+infile1<-"SAODI-01-1854_06-2011_test.asc"             #GHCN shapefile containing variables for modeling 2010                 
+infile2<-"SAODI-01-1854_06-2011.csv"                     #List of 10 dates for the regression
+#infile2<-"list_365_dates_04212012.txt"
+infile3<-"MEOT_MSSA_Telcon_indices_08062012.xlsx"                        #LST dates name
+infile3<-"MEOT_MSSA_Telcon_indices_12112012.xlsx"                        #LST dates name
+infile4<-"mask_rgf_1_1.rst"
+
+# on Benoit Mac
+#in_path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_03102013"
+
+# on Atlas:
+in_path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_03102013/"
+npc<-20 # number of pca to produce...put this at the beginning of the script...
+
+setwd(in_path)
+
+#on MAC:
+#path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/"
+# on Atlas:
+#path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_03102013/"
+#path_raster<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
+telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
+mode_list_MEOT<-c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
+#mode_list_MEOT<-paste("MEOT",1:25,sep="")
+#c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
+
+out_prefix<-"MEOT_paper_03222013"
+
+########################################
+
+#dates <-readLines(paste(path,"/",infile2, sep=""))
+SAODI<-read.table(infile2,sep=",", header=TRUE)
+
+#Prepare data to write out in a textfile
+s_SAODI2 <- subset(SAODI, year>1981 & year<2008) #Subset rows that correspond to the conditions
+s_SAODI2<- subset(s_SAODI2, select=-year) #Remove the column year
+in_SAODI2<-as.vector(t(s_SAODI2))   #This transform the data frame into a one colum
+write.table(in_SAODI2,file=paste("SAOD_index_1981_2007",out_prefix,".txt",sep=""),sep=",")
+
+#Prepare data for cross lag correlation analysis and write out results
+s_SAODI <- subset(SAODI, year>1981 & year<2007) #Subset rows that correspond to the conditions
+s_SAODI<- subset(s_SAODI, select=-year) #Remove the column year
+in_SAODI<-as.vector(t(s_SAODI))   #This transform the data frame into a one colum
+write.table(in_SAODI,file=paste("SAOD_index_1981_2006",out_prefix,".txt",sep=""),sep=",")
+
+#Import results from MEOT and MSSA analyses with teleconneciton indices
+dat<-read.xls(infile3, sheet=1)
+tail(dat$Date_label)
+dat$SAOD<-in_SAODI  #Adding the SAOD index to all the MEOT/MSSA results in the data frame
+
+cor(dat$SAOD,dat$TSA)  #Correlation between indices...
+cor(dat$SAOD,dat$TNA)
+cor(dat$SAOD,dat$AMM)
+
+#Creating time series objects
+d_ts<-ts(data=dat,start=c(1982,1), end=c(2006,12), frequency=12, names=names(dat))
+colnames(d_ts)
+d_z<-as.zoo(d_ts)  #### THIS IS THE TIME SERIES OBJECT USED LATER ON
+d_xts<-as.xts(d_ts)
+
+## find all 7th of the month between two dates, the last being a 7th.
+st <- as.Date("1982-1-15")
+en <- as.Date("2006-12-15")
+dseq <- seq(st, en, by="month") #Creating monthly date sequence to create a time series from a data frame
+d_z2<-zoo(dat,dseq)
+time(d_z)  #no time stamp??
+time(d_z2)
+
+##############################################################
+#### STEP 1: load data, apply latitude weight
+
+lf<-mixedsort(list.files(pattern="ANOM_SST.*.rst"))
+SST_s<-stack(lf)
+SST1<-raster(lf[1])
+lag_window<-13
+
+mask_land<-raster(infile4)
+mask_land_NA<-mask_land
+mask_land_NA[mask_land_NA==0]<-NA
+SST_rast<-mask(SST_s,mask_land_NA,filename="ANOM_SST_1982_2007.tif",overwrite=TRUE)
+class(SST_rast)
+
+#Multiply layer by weight
+
+lat_coord<-coordinates(SST_rast)[,2]
+w_rast<-mask_land
+values(w_rast)<-cos(lat_coord*pi/180) #use area in raster package for weight of a cell??
+w_rast_m<-mask(w_rast,mask_land_NA)
+
+SST_rast<-SST_rast*w_rast #Maybe use overlay to avoid putting in memory?
+writeRaster(SST_rast,filename="ANOM_SST_1982_2007_weighted.tif",overwrite=TRUE)
+rm(SST_rast)
+SST_rast<-brick("ANOM_SST_1982_2007_weighted.tif")
+#Do all in one step using overlay
+#SST_rast<-overlay(x=SST_rast,y=w_rast,filename="ANOM_SST_1982_2007_weighted.tif",overwrite=TRUE,
+#                   fun=function(x,y) {(return(x*y)})
+
+SST1_m<-subset(SST_rast,1)
+plot(stack(SST1,SST1_m))
+#rm(SST1,SST1_m)
+#Need to add weighting scheme base on lat long...
+
+##############################################################
+#### STEP 2: get data ready for PCA by lagging data frame...
+
+SST_sgdf<-as(SST_rast,"SpatialGridDataFrame")
+#SST_df<-as.data.frame(SST_rast) #drop the coordinates x and y
+SST_df<-as.data.frame(SST_sgdf)
+rm(SST_sgdf)
+
 nt<- length(lf)-lag_window+1 #time dimension
 nl<- lag_window #lag dimenstion 
 ns<- ncell(SST1)
 dimension<-list(nt,nl,ns)
-ns_NA<-nrow(SST_df)
+ns_NA<-nrow(SST_df) #42098 if removing land areas from image
 lag_list_obj<-lag_grouping(lag_window,lf) 
 #list_lf contains gorupings of files for every lag (13 groups if lag_window is 13)
 #list_t contains gorupings of files for every lag (13 groups if lag_window is 13)
@@ -121,6 +193,8 @@ list_lf<-lag_list_obj$list_lf
 list_lag_df<-vector("list",length(lag_window))
 names(SST_df)<-c(lf,"s1","s2")
 new_names<-paste("t",1:nt,sep="_")
+
+#Assign new names before doing rbind to avoid problems
 for (j in 1:lag_window){
   list_lag<-list_lf[[j]]
   lag_names<-c(list_lag,"s1","s2")
@@ -135,42 +209,152 @@ rm(list_lag_df)
 save(SST_lag_data_df,file= paste("SST_lag_data_df_",out_prefix,".RData",sep=""))
 #scale on the on the row to standardize pixel value in time?
 
+##############################################################
+#### STEP 3: prepare covariance matrix for PCA 
+
 #load("~/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/SST_1982_2007/SST_lag_data_df_MEOT_paper_03122013.RData")
 
-X<-as.matrix(SST_lag_data_df[,1:nt])
+X<-as.matrix(SST_lag_data_df[,1:nt]) #drop x, y and lag column
 Xt<-t(X)
 Xt<-scale(Xt)
 X<-t(Xt)
 cX<-Xt%*%X
+cX<-cX/ncol(X)
 
-pca_varimax<-principal(r=cX, nfactors = 20, residuals = FALSE, rotate = "varimax")
-Xpc <-predict(pca_varimax,X)
+pca<-principal(r=cX, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+pca_varimax<-principal(r=cX, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "varimax")
+Xpcv <-predict(pca_varimax,X) #with varimax
+Xpc <-predict(pca,X) #without varimax
+
+#Note that covar=TRUE ensures that the square matrix r is not standardized!!
 
 #pca.2 <- principal(r = cor.matrix.1, nfactors = 20, residuals = FALSE, rotate = "varimax")
 #pca_varimax<-principal(r=SST_df, nfactors = 20, residuals = FALSE, rotate = "varimax",scores=TRUE)
 #pca_varimax<-principal(r=SST_lag_data_df[,1:nt], nfactors = 20, residuals = FALSE, rotate = "varimax",scores=TRUE)
 
+save(pca,file= paste("pca_SST_lag_data_df_",out_prefix,".RData",sep=""))
 save(pca_varimax,file= paste("pca_varimax_SST_lag_data_df_",out_prefix,".RData",sep=""))
 save(X,file= paste("SST_lag_data_matrix_nt_",out_prefix,".RData",sep=""))
 save(Xpc,file= paste("SST_lag_data_matrix_components_",out_prefix,".RData",sep=""))
-save(X_pc_data,file= paste("SST_lag_data_components_",out_prefix,".RData",sep=""))
+save(Xpcv,file= paste("SST_lag_data_matrix_components_varimax_",out_prefix,".RData",sep=""))
 
 plot(pca_varimax)
 
-### STEP 4: get lag images for MSSA/PCA
+##############################################################
+#### STEP 4: get lag images for MSSA/PCA
 
-dim(Xpc)
-SST_xy_lag<-SST_lag_data_df[,nt:ncol(SST_lag_data_df)]
-X_pc_data<-as.data.frame(Xpc)
-X_pc_data<-cbind(X_pc_data,SST_xy_lag)
+dim(Xpc) #547274*20
+SST_xy_lag<-SST_lag_data_df[,(nt+1):ncol(SST_lag_data_df)]
+X_pc_data<-as.data.frame(Xpc) #Add coordinates and lag to pc scores
+X_pc_data<-cbind(X_pc_data,SST_xy_lag) #
+save(X_pc_data,file= paste("SST_lag_data_components_",out_prefix,".RData",sep=""))
 
-coordinates(X_pc_data)<-X_pc_data[,c("s1","s2")]
-#loop through k and j with j being lag index
-tmp<-subset(X_pc_data,X_pc_data$lag==1 & X_pc_data[,k)
-pc1_l1<-rasterize(tmp,SST1_m)??
+coordinates(X_pc_data)<-X_pc_data[,c("s1","s2")] #promote to spdf
+#pc1_l1<-rasterize(tmp,SST1_m)??
+#loop through k and j with j being lag index and k pc index
+
+#for (j in 1:lag_window){
+#  tmp<-subset(X_pc_data,X_pc_data$lag==j)
+#  for (k in 1:npc){
+#    pc_name<-names(tmp[k])
+#    pc_lag<-rasterize(tmp,SST1_m,pc_name,fun=min,overwrite=TRUE,
+#                      filename=paste("pc_component_",k,"_",j,"_",out_prefix,".rst",sep=""))
+#  }
+#}
+
+####
+pca_to_raster_fun<-function(pc_spdf,ref_raster,lag_window,out_prefix){
+  #Input arguments:
+  #pc_spdf
+  pc_scores_lf<-vector("list",lag_window)
+  for (k in 1:npc){
+    tmp<-pc_spdf[,k]
+    pc_name<-names(pc_spdf[k])
+    for (j in 1:lag_window){
+      pc_scores<-subset(tmp,tmp$lag==j)
+      raster_name<-paste("pc_component_",k,"_",j,"_",out_prefix,".rst",sep="")
+      pc_lag<-rasterize(pc_scores,ref_raster,pc_name,fun=min,overwrite=TRUE,
+                        filename=raster_name)
+      list_lag_pc[[j]]<-raster_name
+    }
+    pc_scores_lf[[k]]<-list_lag_pc
+  } 
+  return(pc_scores_lf)
+}
+
+k=1
+pc1_lf<-mixedsort(list.files(pattern=paste("pc_component_",k,"_",".*.","_",out_prefix,".rst$",sep="")))
+#pc1_l1<-rasterize(tmp,SST1_m,"PC1",fun=min)
+mssa1<-stack(pc1_lf)
+plot(mssa1)
+
+### DO PCA WITH SST_df: S-mode cross product
+
+A<-SST_df[1:(ncol(SST_df)-2)]
+At<-t(A)
+At<-scale(At)
+A<-t(At)
+cAs<-At%*%A
+cAs<-cAs/nrow(cAs)
+Es<-eigen(cAs) #cross product S-mode
+diag(cAs)
+##Cross product PCA T mode
+pca_SST<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+
+sum(Es$value)
+sum(diag(cAs))
+sum(pca_SST$value)
+
+### DO PCA WITH SST_df: T-mode cross product
+
+A<-SST_df[1:(ncol(SST_df)-2)]
+At<-scale(A)
+cAt<-t(At)%*%At #T mode!!
+cAt<-cAt/nrow(At)
+Et<-eigen(cAt)
+
+##Cross product PCA T mode
+pca_SST<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+
+sum(Et$value)
+sum(diag(cAt))
+sum(pca_SST$value)
+
+#cAt<-A%*%At
+#Ae<-eigen(cAt)
+pca_SST_t_mode<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+principal(r, nfactors = 1, residuals = FALSE,rotate="varimax",n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
+          impute="median",oblique.scores=TRUE,method="regression",...)
+
+##############################################################
+#### STEP 5: quick analysis of results
+
+pca$loadings[,1] #extract first component...
+
+dat<-read.xls(infile3, sheet=1)
+tail(dat$Date_label)
+dat$SAOD<-in_SAODI  #Adding the SAOD index to all the MEOT/MSSA results in the data frame
+
+cor(dat$MSSA1,pca$loadings[,1])  #Correlation between indices...
+pca_loadings_mat<-pca$loadings[,]
+mssa_loadings_mat<-as.matrix(dat[,macth("MSSA*",names(dat))])
+
+cor(dat$SAOD,dat$TNA)
+cor(dat$SAOD,dat$AMM)
+
+###############   END OF SCRIPT   ###################
+#####################################################
 
 
-### END OF SCRIPT...
+
+
+
+
+
+
+
+
+
 #pc1_l2...
 #################################
 # nt<- length(lf)-lag_window+1 #time dimension
