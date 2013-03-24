@@ -219,18 +219,17 @@ Xt<-t(X)
 Xt<-scale(Xt)
 X<-t(Xt)
 cX<-Xt%*%X
-cX<-cX/ncol(X)
+#cX<-cX/ncol(X)
 
 pca<-principal(r=cX, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+#pca_test<-principal(r=cX, nfactors = npc, residuals = FALSE, covar=TRUE,scores=TURE,rotate = "none")
+
 pca_varimax<-principal(r=cX, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "varimax")
+
 Xpcv <-predict(pca_varimax,X) #with varimax
 Xpc <-predict(pca,X) #without varimax
 
 #Note that covar=TRUE ensures that the square matrix r is not standardized!!
-
-#pca.2 <- principal(r = cor.matrix.1, nfactors = 20, residuals = FALSE, rotate = "varimax")
-#pca_varimax<-principal(r=SST_df, nfactors = 20, residuals = FALSE, rotate = "varimax",scores=TRUE)
-#pca_varimax<-principal(r=SST_lag_data_df[,1:nt], nfactors = 20, residuals = FALSE, rotate = "varimax",scores=TRUE)
 
 save(pca,file= paste("pca_SST_lag_data_df_",out_prefix,".RData",sep=""))
 save(pca_varimax,file= paste("pca_varimax_SST_lag_data_df_",out_prefix,".RData",sep=""))
@@ -243,13 +242,19 @@ plot(pca_varimax)
 ##############################################################
 #### STEP 4: get lag images for MSSA/PCA
 
-dim(Xpc) #547274*20
+dim(Xpc) #547274*300??
 SST_xy_lag<-SST_lag_data_df[,(nt+1):ncol(SST_lag_data_df)]
 X_pc_data<-as.data.frame(Xpc) #Add coordinates and lag to pc scores
+X_pc_data<-Xpc[,1:npc] #Add coordinates and lag to pc scores
 X_pc_data<-cbind(X_pc_data,SST_xy_lag) #
+coordinates(X_pc_data)<-X_pc_data[,c("s1","s2")] #promote to spdf
 save(X_pc_data,file= paste("SST_lag_data_components_",out_prefix,".RData",sep=""))
 
-coordinates(X_pc_data)<-X_pc_data[,c("s1","s2")] #promote to spdf
+tmp_names<-paste("PC",1:npc,sep="")
+names(X_pc_data)<-tmp_names
+#coordinates(X_pc_data)<-X_pc_data[,c("s1","s2")] #promote to spdf
+#X_pc_data<-X_pc_data[,c("s1","s2")] #promote to spdf
+
 #pc1_l1<-rasterize(tmp,SST1_m)??
 #loop through k and j with j being lag index and k pc index
 
@@ -263,13 +268,15 @@ coordinates(X_pc_data)<-X_pc_data[,c("s1","s2")] #promote to spdf
 #}
 
 ####
-pca_to_raster_fun<-function(pc_spdf,ref_raster,lag_window,out_prefix){
+pca_to_raster_fun<-function(pc_spdf,ref_raster=SSTm1,lag_window,out_prefix){
   #Input arguments:
-  #pc_spdf
-  pc_scores_lf<-vector("list",lag_window)
+  #pc_spdf: must include x,y and lag in the last 3 columns!!!
+  npc<-ncol(pc_spdf)-3
+  pc_scores_lf<-vector("list",npc)
+  list_lag_pc<-vector("list",lag_window)
   for (k in 1:npc){
     tmp<-pc_spdf[,k]
-    pc_name<-names(pc_spdf[k])
+    pc_name<-names(pc_spdf)[k]
     for (j in 1:lag_window){
       pc_scores<-subset(tmp,tmp$lag==j)
       raster_name<-paste("pc_component_",k,"_",j,"_",out_prefix,".rst",sep="")
@@ -281,50 +288,17 @@ pca_to_raster_fun<-function(pc_spdf,ref_raster,lag_window,out_prefix){
   } 
   return(pc_scores_lf)
 }
+X_test<-X_pc_data[,c(1,2,21,22,23)]
+list_pc<-pca_to_raster_fun(X_test,ref_raster=SST1_m,lag_window,out_prefix)
 
-k=1
-pc1_lf<-mixedsort(list.files(pattern=paste("pc_component_",k,"_",".*.","_",out_prefix,".rst$",sep="")))
+pc_scores_lf<-pca_to_raster_fun(X_pc_data,ref_raster=SST1_m,lag_window,out_prefix)
+  
+#k=1
+#pc1_lf<-mixedsort(list.files(pattern=paste("pc_component_",k,"_",".*.","_",out_prefix,".rst$",sep="")))
 #pc1_l1<-rasterize(tmp,SST1_m,"PC1",fun=min)
-mssa1<-stack(pc1_lf)
+#mssa1<-stack(pc_scores_lf)
+mssa1<-stack(pc_scores_lf[[1]])
 plot(mssa1)
-
-### DO PCA WITH SST_df: S-mode cross product
-
-A<-SST_df[1:(ncol(SST_df)-2)]
-At<-t(A)
-At<-scale(At)
-A<-t(At)
-cAs<-At%*%A
-cAs<-cAs/nrow(cAs)
-Es<-eigen(cAs) #cross product S-mode
-diag(cAs)
-##Cross product PCA T mode
-pca_SST<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-
-sum(Es$value)
-sum(diag(cAs))
-sum(pca_SST$value)
-
-### DO PCA WITH SST_df: T-mode cross product
-
-A<-SST_df[1:(ncol(SST_df)-2)]
-At<-scale(A)
-cAt<-t(At)%*%At #T mode!!
-cAt<-cAt/nrow(At)
-Et<-eigen(cAt)
-
-##Cross product PCA T mode
-pca_SST<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-
-sum(Et$value)
-sum(diag(cAt))
-sum(pca_SST$value)
-
-#cAt<-A%*%At
-#Ae<-eigen(cAt)
-pca_SST_t_mode<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-principal(r, nfactors = 1, residuals = FALSE,rotate="varimax",n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
-          impute="median",oblique.scores=TRUE,method="regression",...)
 
 ##############################################################
 #### STEP 5: quick analysis of results
@@ -337,23 +311,13 @@ dat$SAOD<-in_SAODI  #Adding the SAOD index to all the MEOT/MSSA results in the d
 
 cor(dat$MSSA1,pca$loadings[,1])  #Correlation between indices...
 pca_loadings_mat<-pca$loadings[,]
-mssa_loadings_mat<-as.matrix(dat[,macth("MSSA*",names(dat))])
+#mssa_loadings_mat<-as.matrix(dat[,macth("MSSA*",names(dat))])
 
 cor(dat$SAOD,dat$TNA)
 cor(dat$SAOD,dat$AMM)
 
 ###############   END OF SCRIPT   ###################
 #####################################################
-
-
-
-
-
-
-
-
-
-
 
 #pc1_l2...
 #################################
