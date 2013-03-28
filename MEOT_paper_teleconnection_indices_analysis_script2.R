@@ -3,8 +3,8 @@
 #This script carries out a MSSA with varimax rotation for a timeseries of 312 SST images.       #
 #Note that spatial patterns from MEOT and MSSA components are not analyzed in this script       #                 
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 03/25/2013            
-#Version: 3
+#DATE: 03/28/2013            
+#Version: 4
 #PROJECT: Clark Labs Climate predction- MEOT/MSSA paper                                         #
 #################################################################################################
 
@@ -76,9 +76,16 @@ lag_grouping<-function(lag_window,list_lf){
   return(list_obj)
 }
 ####
-pca_to_raster_fun<-function(pc_spdf,ref_raster=SSTm1,lag_window,out_prefix){
+
+pca_lag_to_raster_fun<-function(pc_spdf,ref_raster=SSTm1,lag_window,out_prefix){
   #Input arguments:
-  #pc_spdf: must include x,y and lag in the last 3 columns!!!
+  #Input arguments:
+  #pc_spdf: spdf with scores components and
+  #         must include x,y and lag in the last 3 columns
+  #ref_raster: reference raster giving the output extent and NA if present
+  #lag_window:
+  #out_prefix
+  
   npc<-ncol(pc_spdf)-3
   pc_scores_lf<-vector("list",npc)
   list_lag_pc<-vector("list",lag_window)
@@ -98,6 +105,24 @@ pca_to_raster_fun<-function(pc_spdf,ref_raster=SSTm1,lag_window,out_prefix){
   return(pc_scores_lf)
 }
 
+pca_lag_to_raster_fun<-function(pc_spdf,ref_raster,out_prefix){
+  #Input arguments:
+  #pc_spdf: spdf with scores components and
+  #         must include x,y in the last 2 columns
+  #ref_raster: reference raster giving the output extent and NA if present
+  npc<-ncol(pc_spdf)-2 #number of components 
+  pc_scores_lf<-vector("list",npc) 
+  for (k in 1:npc){
+    pc_scores<-pc_spdf[,k] #vector containing scores for components k
+    pc_name<-names(pc_spdf)[k] #name of the current component
+    raster_name<-paste("pc_component_",k,"_",out_prefix,".rst",sep="")
+    pc_lag<-rasterize(pc_scores,ref_raster,pc_name,fun=min,overwrite=TRUE,
+                        filename=raster_name)
+    pc_scores_lf[[k]]<-raster_name
+  } 
+  return(pc_scores_lf)
+}
+
 ### Parameters and argument
 
 infile1<-"SAODI-01-1854_06-2011_test.asc"             #GHCN shapefile containing variables for modeling 2010                 
@@ -111,7 +136,7 @@ telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","Q
 mode_list_MEOT<-c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
 mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")    
 #mode_list_PCA<-paste("MSSA",1:15,sep="")
-out_prefix<-"MEOT_paper_03222013"
+out_prefix<-"MEOT_paper_03282013"
 
 # on Benoit Mac
 in_path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_03102013"
@@ -395,6 +420,8 @@ out_prefix_n<-paste("PCn_",out_prefix,sep="")
 #telind<-mode_list_PCA : if cross cor desired
 pcn_obj<-crosscor_lag_analysis_fun(telind,mode_list,d_z2,lag_window,fig=TRUE,out_prefix_n)
 mssa_obj<-crosscor_lag_analysis_fun(telind,mode_list_PCA,d_z2,lag_window,fig=FALSE,out_prefix_n)
+mode_list<-tmp_names<-c(paste("PCv",1:npc,sep="")) #PCA with varimax rotation
+pcv_obj<-crosscor_lag_analysis_fun(telind,mode_list,d_z2,lag_window,fig=TRUE,out_prefix_n)
 
 #debug(crosscor_lag_analysis_fun)
 
