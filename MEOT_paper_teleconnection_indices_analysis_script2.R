@@ -3,8 +3,8 @@
 #This script carries out a MSSA with varimax rotation for a timeseries of 312 SST images.       #
 #Note that spatial patterns from MEOT and MSSA components are not analyzed in this script       #                 
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 03/28/2013            
-#Version: 4
+#DATE: 03/30/2013            
+#Version: 5
 #PROJECT: Clark Labs Climate predction- MEOT/MSSA paper                                         #
 #################################################################################################
 
@@ -26,7 +26,7 @@ library(rasterVis)
 library(psych)
 library(GPArotation)
 
-## Functions used in the script
+## Functions used in the script: there are 4 functions
 
 ### TO DO ... format the data for MSSA create a function for the window of any size ...use lag???
 #unction ot lage files
@@ -48,9 +48,8 @@ lag_grouping<-function(lag_window,list_lf){
   #  -list_lf contains gorupings of files for every lag (13 groups if lag_window is 13)
   #  -list_t contains gorupings of files for every lag (13 groups if lag_window is 13)
   
-  
   #AUTHOR: Benoit Parmentier                                                                       
-  #DATE: 03/22/2013                                                                                 
+  #DATE: 03/30/2013                                                                                 
   #PROJECT: Clark Labs Climate predction- MEOT/MSSA paper     
   #Comments and TODO
   #
@@ -77,14 +76,15 @@ lag_grouping<-function(lag_window,list_lf){
 }
 ####
 
-pca_lag_to_raster_fun<-function(pc_spdf,ref_raster=SSTm1,lag_window,out_prefix){
-  #Input arguments:
+pca_lag_to_raster_fun<-function(pc_spdf,ref_raster=SSTm1,lag_window,NA_val="NA",out_prefix){
+
   #Input arguments:
   #pc_spdf: spdf with scores components and
   #         must include x,y and lag in the last 3 columns
   #ref_raster: reference raster giving the output extent and NA if present
-  #lag_window:
-  #out_prefix
+  #NA_val: value to use for NA, use NA_val="NA" for raster package default value
+  #lag_window: number of lags in MSSA
+  #out_prefix: out suffix added to images
   
   npc<-ncol(pc_spdf)-3
   pc_scores_lf<-vector("list",npc)
@@ -93,32 +93,22 @@ pca_lag_to_raster_fun<-function(pc_spdf,ref_raster=SSTm1,lag_window,out_prefix){
     tmp<-pc_spdf[,k]
     tmp$lag<-pc_spdf$lag
     pc_name<-names(pc_spdf)[k]
+    
     for (j in 1:lag_window){
       pc_scores<-subset(tmp,tmp$lag==j)
       raster_name<-paste("pc_component_",k,"_",j,"_",out_prefix,".rst",sep="")
-      pc_lag<-rasterize(pc_scores,ref_raster,pc_name,fun=min,overwrite=TRUE,
+      if (NA_val=="NA"){
+        pc_lag<-rasterize(pc_scores,ref_raster,pc_name,fun=min,overwrite=TRUE,
                         filename=raster_name)
+      }
+      
+      if (NA_val!="NA"){
+        pc_lag<-rasterize(pc_scores,ref_raster,pc_name,background=NA_val,fun=min,overwrite=TRUE,
+                          filename=raster_name)
+      }
       list_lag_pc[[j]]<-raster_name
     }
     pc_scores_lf[[k]]<-list_lag_pc
-  } 
-  return(pc_scores_lf)
-}
-
-pca_lag_to_raster_fun<-function(pc_spdf,ref_raster,out_prefix){
-  #Input arguments:
-  #pc_spdf: spdf with scores components and
-  #         must include x,y in the last 2 columns
-  #ref_raster: reference raster giving the output extent and NA if present
-  npc<-ncol(pc_spdf)-2 #number of components 
-  pc_scores_lf<-vector("list",npc) 
-  for (k in 1:npc){
-    pc_scores<-pc_spdf[,k] #vector containing scores for components k
-    pc_name<-names(pc_spdf)[k] #name of the current component
-    raster_name<-paste("pc_component_",k,"_",out_prefix,".rst",sep="")
-    pc_lag<-rasterize(pc_scores,ref_raster,pc_name,fun=min,overwrite=TRUE,
-                        filename=raster_name)
-    pc_scores_lf[[k]]<-raster_name
   } 
   return(pc_scores_lf)
 }
@@ -136,7 +126,7 @@ telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","Q
 mode_list_MEOT<-c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
 mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")    
 #mode_list_PCA<-paste("MSSA",1:15,sep="")
-out_prefix<-"MEOT_paper_03282013"
+out_prefix<-"MEOT_paper_03302013"
 
 # on Benoit Mac
 in_path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_03102013"
@@ -192,7 +182,7 @@ w_rast<-mask_land
 values(w_rast)<-cos(lat_coord*pi/180) #use area in raster package for weight of a cell??
 w_rast_m<-mask(w_rast,mask_land_NA)
 
-SST_rast<-SST_rast*w_rast #Maybe use overlay to avoid putting in memory?
+SST_rast<-SST_rast*w_rast #Maybe use overlay to avoid putting raster in memory?
 writeRaster(SST_rast,filename="ANOM_SST_1982_2007_weighted.tif",overwrite=TRUE)
 rm(SST_rast)
 SST_rast<-brick("ANOM_SST_1982_2007_weighted.tif")
@@ -216,26 +206,30 @@ nl<- lag_window #lag dimenstion
 ns<- ncell(SST1)
 dimension<-list(nt,nl,ns)
 ns_NA<-nrow(SST_df) #42098 if removing land areas from image
-lag_list_obj<-lag_grouping(lag_window,lf) 
+lag_list_obj<-lag_grouping(lag_window,lf) #get list of files for every lag
+
 #list_lf contains gorupings of files for every lag (13 groups if lag_window is 13)
 #list_t contains gorupings of files for every lag (13 groups if lag_window is 13)
 list_lf<-lag_list_obj$list_lf
 list_lag_df<-vector("list",length(lag_window))
-names(SST_df)<-c(lf,"s1","s2")
+names(SST_df)<-c(lf,"s1","s2") #remame layer that have lost their names when creating a brikc
 new_names<-paste("t",1:nt,sep="_")
 
-#Assign new names before doing rbind to avoid problems
+### Make this a function??
+
+#Assign new names before doing rbind to avoid problems (only rbind if names are the same!!)
 for (j in 1:lag_window){
   list_lag<-list_lf[[j]]
   lag_names<-c(list_lag,"s1","s2")
-  list_lag_df[[j]]<-SST_df[lag_names]
+  list_lag_df[[j]]<-SST_df[lag_names] #This creates df for each lag...
   names(list_lag_df[[j]])<-c(new_names,"s1","s2")
   list_lag_df[[j]]$lag<-rep(j,ns_NA)
   #standardize in time? the rows...
 }
 
-SST_lag_data_df<-do.call(rbind,list_lag_df)
+SST_lag_data_df<-do.call(rbind,list_lag_df) #bind list??
 rm(list_lag_df)
+##SST_lag_data_df is a data.frame that contains nt columns and 
 save(SST_lag_data_df,file= paste("SST_lag_data_df_",out_prefix,".RData",sep=""))
 #scale on the on the row to standardize pixel value in time?
 
@@ -245,11 +239,13 @@ save(SST_lag_data_df,file= paste("SST_lag_data_df_",out_prefix,".RData",sep=""))
 #load("~/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/SST_1982_2007/SST_lag_data_df_MEOT_paper_03122013.RData")
 
 X<-as.matrix(SST_lag_data_df[,1:nt]) #drop x, y and lag column
-Xt<-t(X)
-Xt<-scale(Xt)
-X<-t(Xt)
-cX<-Xt%*%X
-#cX<-cX/ncol(X)
+Xt<-t(X)                             #transpose X matrix
+Xt<-scale(Xt)                        #center and reduce matrix using mean and sd
+X<-t(Xt)                             #transpose back i.e. X is now row standardized!!
+cX<-Xt%*%X                           #calculate cross product...
+#sum(diag(cX))/299                   #this is equal to the number of rows in X i.e. nrow*lag i.e. 547224 if lag=13
+#cX<-cX/ncol(X) 
+
 
 pca<-principal(r=cX, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
 #pca_test<-principal(r=cX, nfactors = npc, residuals = FALSE, covar=TRUE,scores=TURE,rotate = "none")
@@ -271,9 +267,11 @@ plot(pca_varimax)
 ##############################################################
 #### STEP 4: get lag images for MSSA/PCA from predited object
 
-dim(Xpc) #547274*300??
+dim(Xpc) #547274*300?? (42098*13)*300
 SST_xy_lag<-SST_lag_data_df[,(nt+1):ncol(SST_lag_data_df)]
 X_pc_data<-as.data.frame(Xpc) #Add coordinates and lag to pc scores
+
+#Select a number of components to predict
 X_pc_data<-Xpc[,1:npc] #Add coordinates and lag to pc scores
 X_pc_data<-cbind(X_pc_data,SST_xy_lag) #
 coordinates(X_pc_data)<-X_pc_data[,c("s1","s2")] #promote to spdf
@@ -282,6 +280,7 @@ save(X_pc_data,file= paste("SST_lag_data_components_",out_prefix,".RData",sep=""
 tmp_names<-c(paste("PC",1:npc,sep=""),"s1","s2","lag")
 names(X_pc_data)<-tmp_names
 
+## Prepare data for pca varimax
 dim(Xpcv) #547274*300??
 SST_xy_lag<-SST_lag_data_df[,(nt+1):ncol(SST_lag_data_df)]
 X_pcv_data<-as.data.frame(Xpcv) #Add coordinates and lag to pc scores
@@ -294,21 +293,25 @@ save(X_pcv_data,file= paste("SST_lag_data_components_",out_prefix_pcv,".RData",s
 
 tmp_names<-c(paste("PC",1:npc,sep=""),"s1","s2","lag")
 names(X_pcv_data)<-tmp_names
-out_prefix_pcv<-paste("varimax_",out_prefix,sep="")
 
+#Test the prediction first
 X_test<-X_pcv_data[,c(1,2,21,22,23)]
 #X_test<-X_pc_data[,c(1,2,21,22,23)]
-#pc_scores_lf<-pca_to_raster_fun(X_test,ref_raster=SST1_m,lag_window,out_prefix)
-pc_scores_lf<-pca_to_raster_fun(X_test,ref_raster=SST1_m,lag_window,out_prefix_pcv)
+NA_val="NA" #if NA_val="NA" then the NA values are default otherwise set to the provided value
+pc_scores_lf<-pca_lag_to_raster_fun(X_test,ref_raster=SST1_m,lag_window,NA_val,out_prefix_pcv)
+#pc_scores_lf<-pca_lag_to_raster_fun(X_test,ref_raster=SST1_m,lag_window,out_prefix_pcv)
+
 mssa1<-stack(pc_scores_lf[[1]])
 plot(mssa1)
 
-pc_scores_lf<-pca_to_raster_fun(X_pc_data,ref_raster=SST1_m,lag_window,out_prefix)
-pcv_scores_lf<-pca_to_raster_fun(X_pcv_data,ref_raster=SST1_m,lag_window,out_prefix_pcv)
+## Now predict scores images...
+pc_scores_lf<-pca_lag_to_raster_fun(X_pc_data,ref_raster=SST1_m,NA_val="NA",lag_window,out_prefix)
+pcv_scores_lf<-pca_lag_to_raster_fun(X_pcv_data,ref_raster=SST1_m,NA_val="NA",lag_window,out_prefix_pcv)
 
 ##############################################################
 #### STEP 5: quick analysis of results
 
+#out_prefix<-"MEOT_paper_03222013"
 pca<-load_obj(paste("pca_SST_lag_data_df_",out_prefix,".RData",sep=""))
 pca_varimax<-load_obj(paste("pca_varimax_SST_lag_data_df_",out_prefix,".RData",sep=""))
 
@@ -316,11 +319,8 @@ pca_loadings<-pca$loadings[,1:npc] #extract first component...
 pca_v_loadings<-pca_varimax$loadings[,1:npc] #extract first component...
 tmp_names<-c(paste("PC",1:npc,sep=""))
 colnames(pca_loadings)<-tmp_names
+tmp_names<-c(paste("PCv",1:npc,sep=""))
 colnames(pca_v_loadings)<-tmp_names
-
-dat<-read.xls(infile3, sheet=1)
-tail(dat$Date_label)
-dat$SAOD<-in_SAODI  #Adding the SAOD index to all the MEOT/MSSA results in the data frame
 
 cor(dat$MSSA1,pca$loadings[,1])  #Correlation between indices...
 mssa_names<-paste("MSSA",1:15,sep="")
@@ -334,66 +334,78 @@ diag(cor_mat)
 image(cor_mat)
 cor_mat<-cor(tel_mat,pca_loadings)
 #cor(mssa_mat$MSSA1,pca_loadings$PC1)
-j<-3
+j<-1
 cor(mssa_mat[,j],pca_loadings[,j])
 diag(cor_mat)
-
-##With varimax components...
 cor_mat<-cor(tel_mat,pca_v_loadings)
 diag(cor_mat)
-
-j<-1
-
-plot(mssa_mat[,j],type="l")
-par(new=TRUE)
-#lines(pca_loadings[,j],type="l",col="red")
-#plot(pca_loadings[,j],type="l",col="red")
-plot(pca_v_loadings[,j],type="l",col="red")
-cor(pca_v)
-#Check spatial patterns
-k=3
-j=".?." #only one letter
-raster_name<-paste("pc_component_",k,"_",j,"_",out_prefix,".rst$",sep="")
-pc_scores_lf_tmp<-mixedsort(list.files(pattern=raster_name))
-mssa<-stack(pc_scores_lf_tmp)
-#quartz()
-plot(mssa)
-meot_rast<-mssa
-temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
-layerNames(meot_rast)<-paste("Lag", 0:12,sep=" ")
-title_plot<-paste("MSSA", "spatial sequence",sep=" ")
-meot_rast_m<-mask(meot_rast,mask_land)
-#levelplot(meot_rast_m,col.regions=temp.colors,par.settings = list(axis.text = list(font = 2, cex = 1)))
-levelplot(meot_rast_m,main=title_plot, ylab=NULL,xlab=NULL,,par.settings = list(axis.text = list(font = 2, cex = 1.5),
-          par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
-          col.regions=temp.colors,at=seq(-6,6,by=0.02))
-
-s_range<-c(minValue(meot_rast),maxValue(meot_rast)) #stack min and max
-
-####Check spatial patterns for MSSA varimax
-k=3
-j=".?." #only one letter
-raster_name<-paste("pc_component_",k,"_",j,"_",out_prefix_pcv,".rst$",sep="")
-pc_scores_lf_tmp<-mixedsort(list.files(pattern=raster_name))
-mssa<-stack(pc_scores_lf_tmp)
-#quartz()
-plot(mssa)
-meot_rast<-mssa
-temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
-layerNames(meot_rast)<-paste("Lag", 0:12,sep=" ")
-title_plot<-paste("MSSA", "spatial sequence",sep=" ")
-meot_rast_m<-mask(meot_rast,mask_land)
-#levelplot(meot_rast_m,col.regions=temp.colors,par.settings = list(axis.text = list(font = 2, cex = 1)))
-levelplot(meot_rast_m,main=title_plot, ylab=NULL,xlab=NULL,,par.settings = list(axis.text = list(font = 2, cex = 1.5),
-                                                                                par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
-          col.regions=temp.colors,at=seq(-6,6,by=0.02))
-
-s_range<-c(minValue(meot_rast),maxValue(meot_rast)) #stack min and max
-
 ##Checking eigenvalues:
 sum(pca$values)/(300-1)
 sum(values(w_rast_m),na.rm=TRUE)*13
 sum(values(mask_land),na.rm=TRUE)*13
+
+##############################################################
+#### STEP 6: PLOTTING RESULTS 
+
+### Plotting IDRISI MSSA and PCA as well as PCA varimax
+
+for (j in 1:15){
+  plot(mssa_mat[,j],type="l")
+  par(new=TRUE)
+  plot(pca_loadings[,j],type="l",col="red")
+}
+##With varimax components...
+
+for (j in 1:15){
+  plot(mssa_mat[,j],type="l")
+  par(new=TRUE)
+  plot(pca_v_loadings[,j],type="l",col="red")
+}
+
+#Check spatial patterns
+
+k=1
+for (k in 1:15){
+  j=".?." #only one letter
+  raster_name<-paste("pc_component_",k,"_",j,"_",out_prefix,".rst$",sep="")
+  pc_scores_lf_tmp<-mixedsort(list.files(pattern=raster_name))
+  mssa<-stack(pc_scores_lf_tmp)
+  #quartz()
+  plot(mssa)
+  meot_rast<-mssa
+  temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+  layerNames(meot_rast)<-paste("Lag", 0:12,sep=" ")
+  title_plot<-paste("MSSA", "spatial sequence",sep=" ")
+  meot_rast_m<-mask(meot_rast,mask_land)
+  #levelplot(meot_rast_m,col.regions=temp.colors,par.settings = list(axis.text = list(font = 2, cex = 1)))
+  levelplot(meot_rast_m,main=title_plot, ylab=NULL,xlab=NULL,,par.settings = list(axis.text = list(font = 2, cex = 1.5),
+            par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+            col.regions=temp.colors,at=seq(-6,6,by=0.02))
+  
+}
+
+for (k in 1:15){
+  j=".?." #only one letter
+  raster_name<-paste("pc_component_",k,"_",j,"_",out_prefix_pcv,".rst$",sep="")
+  pc_scores_lf_tmp<-mixedsort(list.files(pattern=raster_name))
+  mssa<-stack(pc_scores_lf_tmp)
+  plot(mssa)
+  meot_rast<-mssa
+  temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+  layerNames(meot_rast)<-paste("Lag", 0:12,sep=" ")
+  title_plot<-paste("MSSA", "spatial sequence",sep=" ")
+  meot_rast_m<-mask(meot_rast,mask_land)
+  #levelplot(meot_rast_m,col.regions=temp.colors,par.settings = list(axis.text = list(font = 2, cex = 1)))
+  levelplot(meot_rast_m,main=title_plot, ylab=NULL,xlab=NULL,,par.settings = list(axis.text = list(font = 2, cex = 1.5),
+            par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+            col.regions=temp.colors,at=seq(-6,6,by=0.02))
+  
+}
+
+s_range<-c(minValue(meot_rast),maxValue(meot_rast)) #stack min and max
+
+##############################################################
+#### STEP 7: CREATE FIGURES FOR PAPER
 
 #####FUNCTION
 # NOW RUN ANALYSIS FOR PCA AND CREATE FIGURES..
