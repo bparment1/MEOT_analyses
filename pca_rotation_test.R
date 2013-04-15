@@ -2,7 +2,7 @@
 #This script carries out a PCA with varimax rotation for a timeseries of 312 SST images.       #
 #Note that spatial patterns from MEOT and MSSA components are not analyzed in this script       #                 
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 03/28/2013            
+#DATE: 04/16/2013            
 #Version: 4
 #PROJECT: Clark Labs Climate predction- MEOT/MSSA paper                                         #
 #################################################################################################
@@ -71,20 +71,21 @@ infile1<-"SAODI-01-1854_06-2011_test.asc"             #GHCN shapefile containing
 infile2<-"SAODI-01-1854_06-2011.csv"                     #List of 10 dates for the regression
 infile3<-"MEOT_MSSA_Telcon_indices_12112012.xlsx"                        #LST dates name
 infile4<-"mask_rgf_1_1.rst"
-infile_pca<-"pca_IDRISI_03302013_T-Mode_DIF.xlsx"
-
+infile_pca <-"pca_IDRISI_03302013_T-Mode_DIF.xlsx"
+infile_s_mode_pca  <- "pca_IDRISI_04152013_S-Mode_DIF.xlsx"
 npc<-20 # number of pca to produce...put this at the beginning of the script...
 lag_window<-13
 telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
 mode_list_MEOT<-c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
 mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")    
 #mode_list_PCA<-paste("MSSA",1:15,sep="")
-out_prefix<-"pca_test_03302013"
+out_prefix<-"pca_test_04152013"
+#out_prefix<-"pca_test_03302013"
 
 # on Benoit Mac
-in_path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_03102013"
+#in_path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_03102013"
 # on Atlas:
-#in_path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_03102013/"
+in_path<-"/home/parmentier/Data/MEOT12272012/MEOT_working_dir_03102013/"
 
 setwd(in_path)
 
@@ -250,15 +251,17 @@ pca_IDRISI_eigenvalues<-read.xls(infile_pca, sheet=3)
 pca_IDRISI_eigenvectors<-read.xls(infile_pca, sheet=4)
 pca_IDRISI_loadings<-read.xls(infile_pca, sheet=5)
 
-pca_scores_spdf<-cbind(as.data.frame(pca_scores),SST_xy)
-
+###### CREATE SCORES IMAGES USING PREDICTED SCORES FROM PRINCIPAL
+#pca_scores<-predict(pca_SST_t_mode,A)  #generate scores from original matrix and object
+pca_scores_spdf<-cbind(as.data.frame(pca_scores),SST_xy) #add coordinates
 coordinates(pca_scores_spdf)<-pca_scores_spdf[,c("s1","s2")] #promote to spdf
-  
+
+#Now generate raster images...
 pca_scores_lf<-pca_to_raster_fun(pca_scores_spdf,SST1_m,-9999,out_prefix)
 
 pca_SST_s<-stack(pca_scores_lf)
-NAvalue(pca_SST_s)<- -999
-plot(subset(pca_IDRISI_s,1))
+NAvalue(pca_SST_s)<- -9999
+#plot(subset(pca_IDRISI_s,1))
 
 pca_IDRISI_s<-stack(mixedsort(list.files(pattern="pca_IDRISI_03302013_T-Mode_Cmp.*.RST$")))
 pca_IDRISI_s<-mask(pca_IDRISI_s,mask_land_NA)
@@ -268,48 +271,124 @@ plot(subset(pca_SST_s,k))
 plot(stack(subset(pca_SST_s,k),subset(pca_IDRISI_s,k)))
 plot(subset(pca_SST_s,k),subset(pca_IDRISI_s,k))
 
-## EXAMINE CORRELATION BETWEEN PCA FROM R AND FROM IDRISI...
+## EXAMINE CORRELATION MAP SCORES BETWEEN PCA FROM R AND FROM IDRISI...
 
 mat1_df<-as.data.frame(as(pca_SST_s,"SpatialGridDataFrame"))
 mat2_df<-as.data.frame(as(pca_IDRISI_s,"SpatialGridDataFrame"))
 cormat<-cor(mat1_df,mat2_df)
-diag(cormat)
+diag(cormat) #This is the diagonal of correlation matrix for IDRISI scores and R scores
+
+# EXAMINE LOADINGS???
+
+pca_IDRISI_loadings$CMP.1
+#
+#mssa_names <-paste("MSSA",1:15,sep="")
+#mssa_mat <- d_z[,mssa_names]
+pc_mat <-unclass(pca_SST_t_mode$loadings)[,1:15]
+cor(pc_mat,pca_IDRISI_loadings[,1:15])
+plot(diag(cor(pc_mat,pca_IDRISI_loadings[,1:15])),type="h")
+### COMPARE MSSA IDRISI AND R components...
+for (j in 1:15){
+  #png
+  j<-j+1
+  plot(pc_mat[,j],type="l")
+  par(new=TRUE)
+  plot(pca_IDRISI_loadings[,j],type="l",col="red",axes=FALSE)
+  axis(4) 
+  legend("topright",col=c("black","red"),
+         legend=c(colnames(pc_mat)[j],colnames(pca_IDRISI_loadings)[j]),
+         lwd=1.5,lty=c(1,1))
+  title(paste(colnames(pc_mat)[j]," and ",colnames(pca_IDRISI_loadings)[j]))
+  #dev.off()
+}
+
+####################################################################
+### NOW DO PCA WITH S-mode
+
+## DO PCA WITH SST_df: S-mode cross product
+#PC_scores[1:10,1]/pca_scores[1:10,1]
+A<-SST_df[1:(ncol(SST_df)-2)] #remove x,y fields to obtain a data.frame with 42098*312 dimension
+At<-t(A)
+Ats<-scale(At) #center time series...
+As<-t(Ats)
+cAs<-Ats%*%As
+cAs<-cAs/nrow(cAs)
+Es<-eigen(cAs) #cross product S-mode
+diag(cAs)
+##Cross product PCA T mode
+#pca_SST<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+pca_SST_s_mode<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+unclass(pca_SST_s_mode$loadings) # extract the matrix of ??
+
+sum(Es$value)
+sum(diag(cAs)) #sum of eigenvalue is equal to the number of variable...
+sum(pca_SST_s_mode$value)
+
+## NOW predict raster images...
+
+pca_s_mode_scores<-predict(pca_SST_s_mode,A)  #generate scores from original matrix and object
+pca_s_mode_scores_spdf<-cbind(as.data.frame(pca_s_mode_scores),SST_xy) #add coordinates
+coordinates(pca_s_mode_scores_spdf)<-pca_s_mode_scores_spdf[,c("s1","s2")] #promote to spdf
+
+#Now generate raster images...
+out_prefix_s_mode<- paste("s_mode_",out_prefix,sep="")
+pca_s_mode_scores_lf<-pca_to_raster_fun(pca_s_mode_scores_spdf,SST1_m,-9999,out_prefix_s_mode)
+
+pca_SST_s_mode_rast <-stack(pca_s_mode_scores_lf) #raster stack of images...
+NAvalue(pca_SST_s_mode_rast)<- -9999
+j<-1
+plot(raster(pca_SST_s_mode_rast,j))
+## NOW read loadings and eigenvalues from PCA in IDRISI to compare 
+
+pca_s_mode_IDRISI_loadings<-read.xls(infile_s_mode_pca, sheet=1) 
+#note scores are loadings in S-mode
+#pca_s_mode_IDRISI_eigenvalues<-read.xls(infile_s_mode_pca, sheet=3)
+pca_s_mode_IDRISI_loadings
+pc_mat <-unclass(pca_SST_s_mode$loadings)[,1:15]
+cor(pc_mat,pca_IDRISI_loadings[,1:15])
+plot(diag(cor(pc_mat,pca_s_mode_IDRISI_loadings[,1:15])),type="h")
+### COMPARE MSSA IDRISI AND R components...
+for (j in 1:15){
+  #png
+  j<-j+1
+  plot(pc_mat[,j],type="l")
+  par(new=TRUE)
+  plot(pca_IDRISI_loadings[,j],type="l",col="red",axes=FALSE)
+  axis(4) 
+  legend("topright",col=c("black","red"),
+         legend=c(colnames(pc_mat)[j],colnames(pca_IDRISI_loadings)[j]),
+         lwd=1.5,lty=c(1,1))
+  title(paste(colnames(pc_mat)[j]," and ",colnames(pca_IDRISI_loadings)[j]))
+  #dev.off()
+}
 
 
-###################################################################
-###################################################################
+## NOW load raster scores from PCA in IDRISI
+pca_s_mode_IDRISI_s<-stack(mixedsort(list.files(pattern="pca_IDRISI_04152013_S-Mode_Cmp.*.RST$")))
+pca_IDRISI_04152013_S-Mode_CompLoadingImg_.*.rst
+pca_s_mode_IDRISI_s<-mask(pca_s_mode_IDRISI_s,mask_land_NA)
+k=3
+plot(subset(pca_IDRISI_s,k))
+plot(subset(pca_SST_s,k))
+plot(stack(subset(pca_SST_s,k),subset(pca_IDRISI_s,k)))
+plot(subset(pca_SST_s,k),subset(pca_IDRISI_s,k))
 
-# ## DO PCA WITH SST_df: S-mode cross product
-# PC_scores[1:10,1]/pca_scores[1:10,1]
-# A<-SST_df[1:(ncol(SST_df)-2)] #remove x,y fields to obtain a data.frame with 42098*312 dimension
-# At<-t(A)
-# At<-scale(At)
-# A<-t(At)
-# cAs<-At%*%A
-# cAs<-cAs/nrow(cAs)
-# Es<-eigen(cAs) #cross product S-mode
-# diag(cAs)
-# ##Cross product PCA T mode
-# pca_SST<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-# 
-# sum(Es$value)
-# sum(diag(cAs))
-# sum(pca_SST$value)
-# 
-# 
-# 
-# #cAt<-A%*%At
-# #Ae<-eigen(cAt)
-# #principal(r, nfactors = 1, residuals = FALSE,rotate="varimax",n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
-# #          impute="median",oblique.scores=TRUE,method="regression",...)
-# 
-# 
-# 
-# ##Correlation PCA T mode
-# #pca_SST<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-# 
-# pca_SST_cor_t_mode<-principal(r=corAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-# unclass(pca_SST_t_mode$loadings) # extract the matrix of ??
+#################################################################
+########################## END OF SCRIPT #########################
+#################################################################
+
+#cAt<-A%*%At
+#Ae<-eigen(cAt)
+#principal(r, nfactors = 1, residuals = FALSE,rotate="varimax",n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
+#          impute="median",oblique.scores=TRUE,method="regression",...)
+
+
+
+##Correlation PCA T mode
+#pca_SST<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+
+#pca_SST_cor_t_mode<-principal(r=corAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+#unclass(pca_SST_t_mode$loadings) # extract the matrix of ??
 # 
 # sum(Et$value)
 # sum(diag(cAt))
