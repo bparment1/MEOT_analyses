@@ -204,46 +204,6 @@ var(Et$vectors)[1]
 var(Et$vectors)[2]
 var(Et$vectors)[3]
 
-###COMPARING EIGENVECTORS FROM "eigen" and principal function
-
-head(unclass(pca_SST_t_mode$loadings)[,1:npc])
-head(Et$vectors[,1:npc]) #not equal...because not standardized...
-cor(unclass(pca_SST_t_mode$loadings)[,1:npc],Et$vectors[,1:npc])
-diag(cor(unclass(pca_SST_t_mode$loadings)[,1:npc],Et$vectors[,1:npc]))
-plot(unclass(pca_SST_t_mode$loadings)[,1],Et$vectors[,1])
-unclass(pca_SST_t_mode$loadings)[,1]/Et$vectors[,1]
-##NOTE THAT THE RATIO IS 6.989 which is the square root of eigenvalue 1!!!
-(unclass(pca_SST_t_mode$loadings)[,1]/Et$vectors[,1])/sqrt(Et$value[1])
-
-Estd <-  Et$vectors%*% diag(sqrt(Et$values))  # Assign length to each eigenvectors??
-head(Estd[,1])
-head(unclass(pca_SST_t_mode$loadings)[,1])
-
-###COMPARIING SCORES FROM FROM "eigen" and principal function
-## Note that the scores are equal only if the square root of eigenvalues has been used to reduce (normalize) the Eigen Vectors!!!
-
-PC_scores<-At%*%Et$vectors # to
-pca_scores<-predict(pca_SST_t_mode,A)
-
-cor(PC_scores[,1],pca_scores[,1]) 
-plot(PC_scores[,1],pca_scores[,1]) 
-PC_scores[1:10,1]/pca_scores[1:10,1]
-sqrt(Et$values[1])
-(PC_scores[1:10,1]/sqrt(Et$values[1]))/pca_scores[1:10,1]
-plot(PC_scores[,1]/sqrt(Et$values[1]),pca_scores[,1]) 
-
-mean(PC_scores[,1])
-sd(PC_scores[,1])
-
-##SO PCA scores from principal are standardized...!!! i.e. they have been divided by the sqrt of the eigenvalues???
-
-#Now reduced version
-PC_std_scores<-At%*%Estd
-plot(PC_std_scores[,1],pca_scores[,1])
-PC_std_scores[1:10,1]/pca_scores[1:10,1]
-
-(PC_std_scores[1:10,1]/(Et$values[1]))/pca_scores[1:10,1]
-
 #
 pca_IDRISI_covar<-read.xls(infile_pca, sheet=1)
 pca_IDRISI_cor<-read.xls(infile_pca, sheet=2)
@@ -252,7 +212,7 @@ pca_IDRISI_eigenvectors<-read.xls(infile_pca, sheet=4)
 pca_IDRISI_loadings<-read.xls(infile_pca, sheet=5)
 
 ###### CREATE SCORES IMAGES USING PREDICTED SCORES FROM PRINCIPAL
-#pca_scores<-predict(pca_SST_t_mode,A)  #generate scores from original matrix and object
+pca_scores<-predict(pca_SST_t_mode,A)  #generate scores from original matrix and object
 pca_scores_spdf<-cbind(as.data.frame(pca_scores),SST_xy) #add coordinates
 coordinates(pca_scores_spdf)<-pca_scores_spdf[,c("s1","s2")] #promote to spdf
 
@@ -308,13 +268,14 @@ for (j in 1:15){
 ## DO PCA WITH SST_df: S-mode cross product
 #PC_scores[1:10,1]/pca_scores[1:10,1]
 A<-SST_df[1:(ncol(SST_df)-2)] #remove x,y fields to obtain a data.frame with 42098*312 dimension
-At<-t(A)
-Ats<-scale(At) #center time series...
+Atr<-t(A)
+Ats<-scale(Atr) #center time series...
 As<-t(Ats)
 cAs<-Ats%*%As
 cAs<-cAs/nrow(cAs)
 Es<-eigen(cAs) #cross product S-mode
 diag(cAs)
+
 ##Cross product PCA T mode
 #pca_SST<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
 pca_SST_s_mode<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
@@ -324,7 +285,21 @@ sum(Es$value)
 sum(diag(cAs)) #sum of eigenvalue is equal to the number of variable...
 sum(pca_SST_s_mode$value)
 
-## NOW predict raster images...
+## NOW predict raster images...using eigen method
+
+PC_scores_e_s_mode<-As%*%Es$vectors # this generates 312 component scores....
+
+PC_scores_e_s_mode_scores_spdf<-cbind(as.data.frame(PC_scores_e_s_mode),SST_xy) #add coordinates
+coordinates(PC_scores_e_s_mode_scores_spdf)<-PC_scores_e_s_mode_scores_spdf[,c("s1","s2")] #promote to spdf
+#Now generate raster images...
+out_prefix_e_s_mode<- paste("e_s_mode_",out_prefix,sep="")
+PC_scores_e_s_mode_scores_lf<-pca_to_raster_fun(PC_scores_e_s_mode_scores_spdf,SST1_m,-9999,out_prefix_e_s_mode)
+
+Es_prin<-princomp(cor = FALSE,scores=FALSE,covmat=cAs) #Ok this gives the same as Es$vectors
+Es_prin_v <-varimax(Es_prin$loadings[,1:20],normalize= FALSE,eps= 1e-3)
+
+
+## NOW predict raster images...using principal method
 
 pca_s_mode_scores<-predict(pca_SST_s_mode,A)  #generate scores from original matrix and object
 pca_s_mode_scores_spdf<-cbind(as.data.frame(pca_s_mode_scores),SST_xy) #add coordinates
@@ -372,6 +347,55 @@ plot(subset(pca_IDRISI_s,k))
 plot(subset(pca_SST_s,k))
 plot(stack(subset(pca_SST_s,k),subset(pca_IDRISI_s,k)))
 plot(subset(pca_SST_s,k),subset(pca_IDRISI_s,k))
+
+####### PART 3 COMPARING METHODS TO PRODUCE COMPONENTS USING PRINCIPAL AND LINEAR ALGEBRA
+
+###COMPARING EIGENVECTORS FROM "eigen" and principal function; Tmode
+
+head(unclass(pca_SST_t_mode$loadings)[,1:npc])
+head(Et$vectors[,1:npc]) #not equal...because not standardized...
+cor(unclass(pca_SST_t_mode$loadings)[,1:npc],Et$vectors[,1:npc])
+diag(cor(unclass(pca_SST_t_mode$loadings)[,1:npc],Et$vectors[,1:npc]))
+plot(unclass(pca_SST_t_mode$loadings)[,1],Et$vectors[,1])
+unclass(pca_SST_t_mode$loadings)[,1]/Et$vectors[,1]
+##NOTE THAT THE RATIO IS 6.989 which is the square root of eigenvalue 1!!!
+(unclass(pca_SST_t_mode$loadings)[,1]/Et$vectors[,1])/sqrt(Et$value[1])
+
+Estd <-  Et$vectors%*% diag(sqrt(Et$values))  # Assign length to each eigenvectors??
+head(Estd[,1])
+head(unclass(pca_SST_t_mode$loadings)[,1])
+
+###COMPARIING SCORES FROM FROM "eigen" and principal function
+## Note that the scores are equal only if the square root of eigenvalues has been used to reduce (normalize) the Eigen Vectors!!!
+
+PC_scores<-At%*%Et$vectors # to
+PC_scores<-as.matrix(A)%*%Et$vectors # to
+
+pca_scores<-predict(pca_SST_t_mode,A)
+
+cor(PC_scores[,1],pca_scores[,1]) 
+plot(PC_scores[,1],pca_scores[,1]) 
+PC_scores[1:10,1]/pca_scores[1:10,1]
+sqrt(Et$values[1])
+(PC_scores[1:10,1]/sqrt(Et$values[1]))/pca_scores[1:10,1]
+plot(PC_scores[,1]/sqrt(Et$values[1]),pca_scores[,1]) 
+
+mean(PC_scores[,1])
+sd(PC_scores[,1])
+mean(pca_scores[,1]) #This has been standardize!!! Principal standardizes the values!!
+sd(pca_scores[,1])
+
+##SO PCA scores from principal are standardized...!!! i.e. they have been divided by the sqrt of the eigenvalues???
+
+#Now reduced version
+PC_std_scores<-At%*%Estd
+plot(PC_std_scores[,1],pca_scores[,1])
+PC_std_scores[1:10,1]/pca_scores[1:10,1]
+
+(PC_std_scores[1:10,1]/(Et$values[1]))/pca_scores[1:10,1]
+
+
+#varimax(x, normalize = TRUE, eps = 1e-5)
 
 #################################################################
 ########################## END OF SCRIPT #########################
