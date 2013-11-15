@@ -32,7 +32,7 @@ library(rgdal)
 library(vegan) 
 library(zoo)
 
-##### Functions used in the script: "generation_of_space_time_dataset_09042013v5.R" #####
+##### Functions used in the script: "generation_of_space_time_dataset_10162013v5.R" #####
 
 ##Function to generate spatial image
 
@@ -526,8 +526,8 @@ generate_moving_space_time_structure <-function(list_param){
     #spdf_shifted <- as(r10_shifted,"SpatialPointsDataFrame")
     spdf_shifted <- SpatialPointsDataFrame(coords=coordinates(r10_shifted),
                                      data=as.data.frame(r10_shifted))  #First put r10 at 0,0 (left botton corner) #This is already the case
-    
-    r_seq <-rasterize(spdf_shifted,rast_ref,"layer")*A_seq[k]
+    layer_name<- names(spdf_shifted)[1]
+    r_seq <-rasterize(spdf_shifted,rast_ref,layer_name)*A_seq[k]
     rast_seq[[k]] <-cover(r_seq,rast_ref)
   }
   #text(x=coords_locs[,1],y=coords_locs[,2],1:12)
@@ -555,7 +555,7 @@ generate_moving_space_time_structure <-function(list_param){
   return(moving_ST_struct_obj)
 }
 
-generate_spatial_trajectory <- function(rast_ref,period){
+generate_spatial_trajectory <- function(rast_ref,period,aggregate_opt){
   #This function generates spatial trajectory. for spatial moving patterns. Note that the trajectory returns
   #to the initial position in all cases. The number of step in the trajectory is taken as the period.
   
@@ -664,10 +664,15 @@ generate_spatial_trajectory <- function(rast_ref,period){
   
   ### Create default trajectory 10: s-shape spatial indexing trajectory from top right without aggregation
   
-  rast_ref_id <- rast_ref
-  
+  if(!is.null(aggregate_opt)==TRUE){
+    #rast_ref_id <- rast_ref
+    rast_ref_id<-aggregate(rast_ref,fact=3,mean)
+  }
+
+  row_ref <- nrow(rast_ref_id)
+  col_ref <- ncol(rast_ref_id)
   #add option aggregate?
-  values(rast_ref_id) <- 1:ncell(rast_ref)
+  values(rast_ref_id) <- 1:ncell(rast_ref_id)
   seq_row<-1:row_ref
   seq_row <- seq_row[seq(1, length(seq_row), 2)]
   for(i in seq_row){
