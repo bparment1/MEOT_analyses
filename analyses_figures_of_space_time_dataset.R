@@ -35,7 +35,7 @@ library(gridExtra)
 
 ##### Functions used in this script #####
 
-functions_generation_space_time_datasets <- "generation_of_space_time_dataset_functions_11252013v6.R"
+functions_generation_space_time_datasets <- "generation_of_space_time_dataset_functions_12312013v6.R"
 
 script_path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/" #path to script
 source(file.path(script_path,functions_generation_space_time_datasets)) #source all functions used in this script.
@@ -153,7 +153,8 @@ plot_components_by2_IDRISI_ETM_proj <-function(components_folders,comp_files,out
 ############# Parameters and arguments ####################
 
 out_suffix <-"MEOT_01092014"
-in_dir <- "/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/3x3dataset"
+in_dir<- "/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/work_dir5_01102013"
+#/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/work_dir5_01102013
 out_dir<- "/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/"
 
 out_dir_name <- paste("analyses_and_figures","_",out_suffix,sep="")
@@ -169,21 +170,22 @@ setwd(out_dir)
 ############## PART I : MEOT WITH SINUSOIDAL PATTERN ###############
 
 
-sine_inDir <- "/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/9x9sine"
-MEOT_inDir <- "/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_9x9sine"
+#sine_inDir <- "/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/9x9sine"
+sine_inDir <- "/Users/benoitparmentier/Documents/Data/Benoit/Clark_University/Paper_writings/MSSA_BNP/work_dir5_01102013/sine9x9_90"
+#MEOT_inDir <- "/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_9x9sine"
 
-r_test_sine <- stack(list.files(pattern="Cover9.*.rst$",path=sine_inDir,full.names=T))
+r_test_sine <- stack(list.files(pattern="sine9x9_90.*.rst$",path=sine_inDir,full.names=T))
 
 #r_meot_list <- list.files(pattern="Cover9.*.rst$",path=sine_inDir,full.names=T)
-
-nt <- 45
-temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
-#levelplot(r_test_sine,layers=1:nt,col.regions=temp.colors)
+#nt <- 45
+nt <- 90
 
 r_agg <- aggregate(r_test_sine,fact=3,fun=mean) #
 coords_xy <- coordinates(r_agg)
-
+#Prepare time series profiles
 pix_dat <- t(extract(r_test_sine,coords_xy))
+pix_dat <- as.data.frame(pix_dat)
+pix_dat <- pix_dat[,c(1,2,3,9,8,7,4,5,6)] #reorder pixels according to S shape
 
 ########### Plotting figures ###########
 
@@ -221,14 +223,18 @@ dev.off()
 
 ### Figure 2: MEOT sequences 9
 
-in_dir<- "/Users/benoitparmentier/Documents/Data/Benoit/Clark_University/Paper_writings/MSSA_BNP/work_dir4_11252013"
+#in_dir<- "/Users/benoitparmentier/Documents/Data/Benoit/Clark_University/Paper_writings/MSSA_BNP/work_dir4_11252013"
 
 #Get all files relevant to components
 list_components_folders <- list.dirs(path=in_dir) #default uses recursive and full.names
 list_components_folders <- mixedsort(grep("*.components$",list_components_folders,value=T))
-list_components_folders <- (grep("sine9by9",list_components_folders,value=T)) #get the sine9by9
+#list_components_folders <- (grep("sine9by9",list_components_folders,value=T)) #get the sine9by9
+list_components_folders <- (grep("test_sine9x9_90_",list_components_folders,value=T)) #get the sine9by9
 
-pattern_str<- c("sine9by9_L2","sine9by9_L4","sine9by9_L5","sine9by9_L6","sine9by9_L8","sine9by9_L9","sine9by9_L18")
+#pattern_str<- c("sine9by9_L2","sine9by9_L4","sine9by9_L5","sine9by9_L6","sine9by9_L8","sine9by9_L9","sine9by9_L18")
+pattern_str<- c("test_sine9x9_90_L2","test_sine9x9_90_L4","test_sine9x9_90_L5","test_sine9x9_90_L6",
+                "test_sine9x9_90_L8","test_sine9x9_90_L9","test_sine9x9_90_L18")
+
 folder_components <-list_components_folders
 
 list_component_files <- mixedsort(list.files(pattern="*.Comp.*.R.rst$",list_components_folders[1]))
@@ -239,34 +245,49 @@ list_MEOT_Lag_analyses <- lapply(1:length(pattern_str),function(k){grep(pattern=
 ## Quick exploration of results
 list_plots_meot_obj <- vector("list",length=length(list_MEOT_Lag_analyses))
 
+out_suffix_s <- paste(pattern_str[6],out_suffix,sep="_") #Lag 2,Lag4 ... to Lag 18
+list_plots_meot_obj[[6]] <- plot_components_IDRISI_ETM_proj(folder_components,comp_files=list_MEOT_Lag_analyses[[6]] ,out_dir,out_suffix_s)
+
 #put this in a loop..
 for  (i in 1:length(list_plots_meot_obj)){
   out_suffix_s <- paste(pattern_str[i],out_suffix,sep="_") #Lag 2,Lag4 ... to Lag 18
   list_plots_meot_obj[[i]] <- plot_components_IDRISI_ETM_proj(folder_components,comp_files=list_MEOT_Lag_analyses[[i]] ,out_dir,out_suffix_s)
 }
 
-#out_suffix_s <- paste(pattern_str[1],out_suffix,sep="_") #Lag 2
-#list_plots_meot_obj[[1]] <- plot_components_IDRISI_ETM_proj(components_folders,comp_files=list_MEOT_Lag_analyses[[1]] ,out_dir,out_suffix_s)
-#out_suffix_s <- paste(pattern_str[2],out_suffix,sep="_") #Lag 4
-#list_plots_meot_obj[[2]] <- plot_components_IDRISI_ETM_proj(components_folders,comp_files=list_MEOT_Lag_analyses[[2]] ,out_dir,out_suffix_s)
-#out_suffix_s <- paste(pattern_str[3],out_suffix,sep="_") #Lag 5
-#list_plots_meot_obj[[3]] <- plot_components_IDRISI_ETM_proj(components_folders,comp_files=list_MEOT_Lag_analyses[[3]] ,out_dir,out_suffix_s)
-#out_suffix_s <- paste(pattern_str[4],out_suffix,sep="_") #Lag 6
-#list_plots_meot_obj[[4]] <- plot_components_IDRISI_ETM_proj(components_folders,comp_files=list_MEOT_Lag_analyses[[3]] ,out_dir,out_suffix_s)
-#out_suffix_s <- paste(pattern_str[5],out_suffix,sep="_") #Lag 8
-#list_plots_meot_obj[[5]] <- plot_components_IDRISI_ETM_proj(components_folders,comp_files=list_MEOT_Lag_analyses[[4]] ,out_dir,out_suffix_s)
-#out_suffix_s <- paste(pattern_str[6],out_suffix,sep="_") #Lag 9
-#list_plots_meot_obj[[6]] <- plot_components_IDRISI_ETM_proj(components_folders,comp_files=list_MEOT_Lag_analyses[[5]] ,out_dir,out_suffix_s)
-#out_suffix_s <- paste(pattern_str[7],out_suffix,sep="_") #Lag 18
-#list_plots_meot_obj[[7]] <- plot_components_IDRISI_ETM_proj(components_folders,comp_files=list_MEOT_Lag_analyses[[6]] ,out_dir,out_suffix_s)#
 
 ### Now combine plots...
+#pattern_str<- c("sine9x9_90_L2","sine9x9_90_L4","sine9x9_90_L5","sine9x9_90_L6",
+#                "sine9x9_90_L8","sine9x9_90_L9","sine9x9_90_L18")
+pattern_str<- c("test_sine9x9_90_L2","test_sine9x9_90_L4","test_sine9x9_90_L5","test_sine9x9_90_L6",
+                "test_sine9x9_90_L8","test_sine9x9_90_L9","test_sine9x9_90_L18")
 
-pattern_str<- c("sine9by9_L2","sine9by9_L4","sine9by9_L5","sine9by9_L6","sine9by9_L8","sine9by9_L9","sine9by9_L18")
+#pattern_str<- c("sine9by9_L2","sine9by9_L4","sine9by9_L5","sine9by9_L6","sine9by9_L8","sine9by9_L9","sine9by9_L18")
 folder_components <-list_components_folders
 
+#title_plots <- c("Lag window 2 MEOT","Lag window 4 MEOT", "Lag window 5 MEOT", "Lag window 6 MEOT",
+#                "Lag window 8 MEOT","Lag window 9 MEOT","Lag window 18 MEOT")
+
 title_plots <- c("Lag window 2 MEOT","Lag window 4 MEOT", "Lag window 5 MEOT", "Lag window 6 MEOT",
-                "Lag window 8 MEOT","Lag window 9 MEOT","Lag window 18 MEOT")
+                 "Lag window 8 MEOT","Lag window 9 MEOT","Lag window 18 MEOT")
+
+i<-6
+layout_m <- c(1,1)
+#no_fig <-i+1
+png(paste("Figure",no_fig,"_paper_revisions_supplement_",out_suffix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2]*2)
+#height=3*480*layout_m[1],width=2*480*layout_m[2])
+#height=480*6,width=480*4)
+#par(mfrow=layout_m)    
+
+p_comp1 <- list_plots_meot_obj[[i]][[1]] 
+p_comp2 <- list_plots_meot_obj[[i]][[2]] 
+
+p_comp1$main <- paste(title_plots[[i]],1,sep="")
+p_comp2$main <- paste(title_plots[[i]],2,sep="")
+grid.arrange(p_comp1,p_comp2,ncol=2)
+
+dev.off()
+
 
 for (i in 1:length(list_plots_meot_obj)){
   layout_m <- c(1,1)
@@ -292,12 +313,11 @@ for (i in 1:length(list_plots_meot_obj)){
 
 l_df <- plot_temporal_components_IDRISI_ETM_proj(folder_components,pattern_str,out_dir,out_suffix) 
 
-pattern_str<- c("sine9by9_L2","sine9by9_L4","sine9by9_L5","sine9by9_L8","sine9by9_L9","sine9by9_L18")
+#pattern_str<- c("sine9by9_L2","sine9by9_L4","sine9by9_L5","sine9by9_L8","sine9by9_L9","sine9by9_L18")
+pattern_str<- c("sine9x9_90_L2","sine9x9_90_L4","sine9x9_90_L5","sine9x9_90_L6",
+                "sine9x9_90_L8","sine9x9_90_L9","sine9x9_90_L18")
 folder_components <-list_components_folders
 
-
-title_plots <- c("Lag window 2 MEOT","Lag window 4 MEOT", "Lag window 5 MEOT",
-                 "Lag window 8 MEOT","Lag window 9 MEOT","Lag window 18 MEOT")
 for (i in 1:length(l_df)){
   df <-l_df[[i]]
   layout_m <- c(1,1)
@@ -315,8 +335,6 @@ for (i in 1:length(l_df)){
          lty=c(1,2),lwd=2)  #lwd=line width
   dev.off()
 }
-
-
 
 ############## PART II : RED NOISE ANALYSIS ###############
 
