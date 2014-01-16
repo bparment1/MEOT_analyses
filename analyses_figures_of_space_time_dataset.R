@@ -71,33 +71,39 @@ plot_temporal_components_IDRISI_ETM_proj <-function(folder_components,pattern_st
   
 }
 
-plot_components_IDRISI_ETM_proj <-function(components_folders,comp_files,out_dir,out_suffix){
+plot_components_IDRISI_ETM_proj <-function(components_folders,comp_files,out_dir,out_suffix,r_mask=NULL,
+                                           res_pix=480,col_mfrow=1,row_mfrow=1){
   #Plot output components from ETM in IDRISI
   
   tmp_str <- strsplit(comp_files,"_")
   comp_str <-unique(unlist(lapply(tmp_str,function(k){grep(pattern="Comp*",k,value=TRUE)})))
+  comp_file_str <- paste(comp_str,"_R.rst",sep="") #components end string 
   no_comp <- length(comp_str) #number of components in the analysis
   
-  list_MEOT_Lag_analyses_comp <- lapply(1:length(comp_str),function(k){grep(pattern=comp_str[k],comp_files,value=TRUE)})
+  list_MEOT_Lag_analyses_comp <- lapply(1:length(comp_file_str),function(k){grep(pattern=comp_file_str[k],comp_files,value=TRUE)})
   
   list_plots_obj <- vector("list",length=no_comp) 
   
   list_raster_name <- vector("list",length=1)
   for(i in 1:length(comp_str)){
     
-    comp_str_processed <-comp_str[i]      
+    comp_str_processed <- comp_str[i]      
     list_r_comp_s <- file.path(folder_components,list_MEOT_Lag_analyses_comp[[i]])
     r_comp_s <- stack(mixedsort(list_r_comp_s))
+    if (!is.null(r_mask)){
+      r_comp_s <- mask(r_comp_s,r_mask)
+    }
     layerNames(r_comp_s)<-paste(comp_str_processed,1:nlayers(r_comp_s),sep="_")
     temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
-    temp.colors <- matlab.like(18)
+    temp.colors <- matlab.like(100)
     #levelplot(r_stack,layers=1:48, col.regions=temp.colors)
     p <- levelplot(r_comp_s, col.regions=temp.colors,main=paste(comp_str_processed,"_",out_suffix,sep=""))
     
-    res_pix<-480
-    col_mfrow<-1
+    #How to match to 24 by 12 (width and height)
+    #res_pix<-480 #set as function argument...
+    #col_mfrow<-1
     #row_mfrow<-2
-    row_mfrow<-1
+    #row_mfrow<-1
     
     png_file_name<- paste("Figure_",comp_str_processed,"_",paste(out_suffix,sep=""),".png", sep="")
     png(filename=file.path(out_dir,png_file_name),
@@ -150,10 +156,101 @@ plot_components_by2_IDRISI_ETM_proj <-function(components_folders,comp_files,out
   }
 }
 
+crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_prefix){
+  #This function crosss correlates between two sets of time series given some lag window.
+  #Arguments:
+  #1)telind: time series 1 as character vector
+  #2)modelist: time series 2 as character vector
+  #3)d_z: zoo object 
+  #4)lag_window:
+  #5)fig:
+  
+  lag_table_ext<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
+  lag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
+  lag_table_text<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list)) #Formatted table used in the paper
+  #lag_cross_cor_PCA<-vector("list",length(mode_list))
+  lag_m<-seq(-1*lag_window,lag_window,1)
+  #retain ccf!!!
+  #list_ccf_lag_table
+  
+  #lag_cross_cor_PCA_m<-array(data=NA,nrow=length(lag_m),ncol=length(mode_list))
+  for (i in 1:length(telind)){
+    telindex<-telind[i]
+    pos1<-match(telindex,names(d_z))
+    #retain ccf!!!
+    for (j in 1:length(mode_list)){
+      mode_n<-mode_list[j]
+      pos2<-match(mode_n,names(d_z))
+      ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=lag_window)  #Note that ccf does not take
+      
+      lag_m<-seq(-1*lag_window,lag_window,1)
+      ccf_obj$lag[,1,1]<-lag_m  #replacing lag values because continuous
+      
+      if (fig=="TRUE"){
+        plot_name<-paste(telindex, "and", mode_n,"lag analysis",sep="_")
+        png(paste(plot_name,"_",out_prefix,".png", sep=""))
+        plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
+             xlab="Lag (month)", ylim=c(-1,1))
+        dev.off()
+      }
+      
+      ######### NOW FIND THE m
+      absext <-max(abs(ccf_obj$acf)) # maximum of the extremum
+      pos<-match(absext,ccf_obj$acf) #find the position and lag, if NA it means it was negative
+      if (is.na(pos)) {
+        pos<-match(absext*-1,ccf_obj$acf)
+        absext<-absext*-1   #recover the sign
+      } 
+      absext_lag<-ccf_obj$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
+      
+      lag_table_ext[i,j]<-absext
+      lag_table_lag[i,j]<-absext_lag
+      #number<-format(absext,digits=3)
+      ext<-round(absext,digits=3)
+      element<-paste(ext," (",absext_lag,")",sep="")
+      lag_table_text[i,j]<-element
+      
+      ##Keep ccf lag somewhere
+    }
+  }
+  
+  lag_table_ext<-as.data.frame(lag_table_ext)
+  names(lag_table_ext)<-mode_list
+  rownames(lag_table_ext)<-telind
+  file_name<-paste("lag_table_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
+  write.table(lag_table_ext,file=file_name,sep=",")
+  
+  lag_table_lag<-as.data.frame(lag_table_lag)
+  names(lag_table_lag)<-mode_list
+  rownames(lag_table_lag)<-telind
+  file_name<-paste("lag_table_lag_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
+  write.table(lag_table_lag,file=file_name,sep=",")
+  
+  lag_table_text<-as.data.frame(lag_table_text)
+  names(lag_table_text)<-mode_list
+  rownames(lag_table_text)<-telind
+  file_name<-paste("lag_table_lag_ext_text", lag_window,"_",out_prefix,".txt",sep="")
+  write.table(lag_table_text,file=file_name,sep=",")
+  
+  #create return object
+  
+  crosscor_obj<-list(lag_table_ext,lag_table_lag,lag_table_text)
+  names(crosscor_obj)<-c("extremum","lag_ext","text")
+  file_name<-paste("crosscor_obj_lag_analysis_", lag_window,"_",out_prefix,".RData",sep="")
+  save(crosscor_obj,file=file_name)
+  
+  return(crosscor_obj)
+}
+
 ############# Parameters and arguments ####################
 
-out_suffix <-"MEOT_01092014"
-in_dir<- "/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/work_dir5_01102013"
+out_suffix <-"MEOT_s11_L24_01162014"
+#in_dir<- "/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/anom_sst_1982_2007_skipfactor1/"
+#r_mask_file <- "/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/SST_1982_2007_Data/mask_land.rst"
+in_dir<- "/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/work_dir6_01172014"
+r_mask_file <- "/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/SST_1982_2007_Data/mask_rgf_1_1.rst"
+
+#/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/SST_1982_2007_Data/
 #/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/work_dir5_01102013
 out_dir<- "/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/"
 
@@ -166,77 +263,78 @@ if (!file.exists(out_dir)){
 }
 setwd(out_dir)
 
-
 ############## PART I : MEOT WITH SINUSOIDAL PATTERN ###############
 
-
 #sine_inDir <- "/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/9x9sine"
-sine_inDir <- "/Users/benoitparmentier/Documents/Data/Benoit/Clark_University/Paper_writings/MSSA_BNP/work_dir5_01102013/sine9x9_90"
+#sine_inDir <- "/Users/benoitparmentier/Documents/Data/Benoit/Clark_University/Paper_writings/MSSA_BNP/work_dir5_01102013/sine9x9_90"
 #MEOT_inDir <- "/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_9x9sine"
 
-r_test_sine <- stack(list.files(pattern="sine9x9_90.*.rst$",path=sine_inDir,full.names=T))
+#r_test_sine <- stack(list.files(pattern="sine9x9_90.*.rst$",path=sine_inDir,full.names=T))
 
 #r_meot_list <- list.files(pattern="Cover9.*.rst$",path=sine_inDir,full.names=T)
 #nt <- 45
-nt <- 90
+#nt <- 90
 
-r_agg <- aggregate(r_test_sine,fact=3,fun=mean) #
-coords_xy <- coordinates(r_agg)
+#r_agg <- aggregate(r_test_sine,fact=3,fun=mean) #
+#coords_xy <- coordinates(r_agg)
 #Prepare time series profiles
-pix_dat <- t(extract(r_test_sine,coords_xy))
-pix_dat <- as.data.frame(pix_dat)
-pix_dat <- pix_dat[,c(1,2,3,9,8,7,4,5,6)] #reorder pixels according to S shape
+#pix_dat <- t(extract(r_test_sine,coords_xy))
+#pix_dat <- as.data.frame(pix_dat)
+#pix_dat <- pix_dat[,c(1,2,3,9,8,7,4,5,6)] #reorder pixels according to S shape
 
 ########### Plotting figures ###########
 
 ### Figure 1: Original signal...###
 #1. images
 
-layout_m <- c(1,1)
-png(paste("Figure1a","original_sine","_paper_revisions_supplement_",out_suffix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2]*1)
+#layout_m <- c(1,1)
+#png(paste("Figure1a","original_sine","_paper_revisions_supplement_",out_suffix,".png", sep=""),
+#    height=480*layout_m[1],width=480*layout_m[2]*1)
 #height=3*480*layout_m[1],width=2*480*layout_m[2])
 #height=480*6,width=480*4)
 #par(mfrow=layout_m)    
-names_panel_plot <- paste("T",1:9,sep="_")
-levelplot(r_test_sine,layers=1:9,col.regions=matlab.like(18),
-          par.settings = list(strip=strip.custom(factor.levels=names_panel_plot)))
-dev.off()
+#names_panel_plot <- paste("T",1:9,sep="_")
+#levelplot(r_test_sine,layers=1:9,col.regions=matlab.like(18),
+#          par.settings = list(strip=strip.custom(factor.levels=names_panel_plot)))
+#dev.off()
 #2. temporal profiles
 #r_dat <- as(r_test_sine,"SpatialPointsDataFrame")
-layout_m <- c(1,1)
-png(paste("Figure1b","original_image_time_series_1","_paper_revisions_supplement_",out_suffix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2]*1)
+#layout_m <- c(1,1)
+#png(paste("Figure1b","original_image_time_series_1","_paper_revisions_supplement_",out_suffix,".png", sep=""),
+#    height=480*layout_m[1],width=480*layout_m[2]*1)
 
-plot(subset(r_test_sine,1),col=matlab.like(18),
-     legend.width=2, legend.shrink=0.75)
-text(coords_xy[,1],coords_xy[,2],labels=c(1,2,3,9,8,7,4,5,6))
+#plot(subset(r_test_sine,1),col=matlab.like(18),
+#     legend.width=2, legend.shrink=0.75)
+#text(coords_xy[,1],coords_xy[,2],labels=c(1,2,3,9,8,7,4,5,6))
 #text(coords_xy[,1],coords_xy[,2],labels=1:9)
-dev.off()
+#dev.off()
 
-png(paste("Figure1c","original_sine_time_series","_paper_revisions_supplement_",out_suffix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2]*1)
-
-plot(as.ts(pix_dat),main="Pixels time series")
-
-dev.off()
+#png(paste("Figure1c","original_sine_time_series","_paper_revisions_supplement_",out_suffix,".png", sep=""),
+#    height=480*layout_m[1],width=480*layout_m[2]*1)
+#plot(as.ts(pix_dat),main="Pixels time series")
+#dev.off()
 
 ### Figure 2: MEOT sequences 9
 
 #in_dir<- "/Users/benoitparmentier/Documents/Data/Benoit/Clark_University/Paper_writings/MSSA_BNP/work_dir4_11252013"
 
+r_mask <- raster(r_mask_file)
+r_mask[r_mask==0] <- NA
+#plot(r_mask)
 #Get all files relevant to components
 list_components_folders <- list.dirs(path=in_dir) #default uses recursive and full.names
 list_components_folders <- mixedsort(grep("*.components$",list_components_folders,value=T))
 #list_components_folders <- (grep("sine9by9",list_components_folders,value=T)) #get the sine9by9
-list_components_folders <- (grep("test_sine9x9_90_",list_components_folders,value=T)) #get the sine9by9
 
-#pattern_str<- c("sine9by9_L2","sine9by9_L4","sine9by9_L5","sine9by9_L6","sine9by9_L8","sine9by9_L9","sine9by9_L18")
-pattern_str<- c("test_sine9x9_90_L2","test_sine9x9_90_L4","test_sine9x9_90_L5","test_sine9x9_90_L6",
-                "test_sine9x9_90_L8","test_sine9x9_90_L9","test_sine9x9_90_L18")
+list_components_folders <- (grep("_skipfactor1",list_components_folders,value=T)) #get the sine9by9
 
+#pattern_str<- c("test_sine9x9_90_L2","test_sine9x9_90_L4","test_sine9x9_90_L5","test_sine9x9_90_L6",
+#                "test_sine9x9_90_L8","test_sine9x9_90_L9","test_sine9x9_90_L18")
+#pattern_str<- c("_skipfactor1")
+pattern_str <- c("MEOT_skipfactor1_s11_L12","MEOT_skipfactor1_s11_L24")
 folder_components <-list_components_folders
 
+#Select groups of files containing MEOT analyses
 list_component_files <- mixedsort(list.files(pattern="*.Comp.*.R.rst$",list_components_folders[1]))
 list_MEOT_Lag_analyses <- lapply(1:length(pattern_str),function(k){grep(pattern=pattern_str[k],list_component_files,value=TRUE)})
 
@@ -244,22 +342,29 @@ list_MEOT_Lag_analyses <- lapply(1:length(pattern_str),function(k){grep(pattern=
 
 ## Quick exploration of results
 list_plots_meot_obj <- vector("list",length=length(list_MEOT_Lag_analyses))
+#r44 <- raster("/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/SST_1982_2007_Data/mask_rgf_1_1.rst")
 
-out_suffix_s <- paste(pattern_str[6],out_suffix,sep="_") #Lag 2,Lag4 ... to Lag 18
-list_plots_meot_obj[[6]] <- plot_components_IDRISI_ETM_proj(folder_components,comp_files=list_MEOT_Lag_analyses[[6]] ,out_dir,out_suffix_s)
-
+out_suffix_s <- paste(pattern_str[1],out_suffix,sep="_") #Lag 2,Lag4 ... to Lag 18
+#undebug(plot_components_IDRISI_ETM_proj)
+#list_plots_meot_obj[[1]] <- plot_components_IDRISI_ETM_proj(folder_components,comp_files=list_MEOT_Lag_analyses[[1]] ,out_dir,out_suffix_s)
+list_plots_meot_obj[[1]] <- plot_components_IDRISI_ETM_proj(folder_components,comp_files=list_MEOT_Lag_analyses[[1]] ,
+                                                            out_dir,out_suffix_s,r_mask=r_mask,
+                                                            res_pix=480,col_mfrow=2,
+                                                            row_mfrow=1)  
 #put this in a loop..
 for  (i in 1:length(list_plots_meot_obj)){
   out_suffix_s <- paste(pattern_str[i],out_suffix,sep="_") #Lag 2,Lag4 ... to Lag 18
-  list_plots_meot_obj[[i]] <- plot_components_IDRISI_ETM_proj(folder_components,comp_files=list_MEOT_Lag_analyses[[i]] ,out_dir,out_suffix_s)
+  list_plots_meot_obj[[i]] <- plot_components_IDRISI_ETM_proj(folder_components,comp_files=list_MEOT_Lag_analyses[[i]] ,
+                                                              out_dir,out_suffix_s,r_mask=r_mask,
+                                                              res_pix=480,col_mfrow=2,
+                                                              row_mfrow=1)  
 }
-
 
 ### Now combine plots...
 #pattern_str<- c("sine9x9_90_L2","sine9x9_90_L4","sine9x9_90_L5","sine9x9_90_L6",
 #                "sine9x9_90_L8","sine9x9_90_L9","sine9x9_90_L18")
-pattern_str<- c("test_sine9x9_90_L2","test_sine9x9_90_L4","test_sine9x9_90_L5","test_sine9x9_90_L6",
-                "test_sine9x9_90_L8","test_sine9x9_90_L9","test_sine9x9_90_L18")
+#pattern_str<- c("test_sine9x9_90_L2","test_sine9x9_90_L4","test_sine9x9_90_L5","test_sine9x9_90_L6",
+#                "test_sine9x9_90_L8","test_sine9x9_90_L9","test_sine9x9_90_L18")
 
 #pattern_str<- c("sine9by9_L2","sine9by9_L4","sine9by9_L5","sine9by9_L6","sine9by9_L8","sine9by9_L9","sine9by9_L18")
 folder_components <-list_components_folders
@@ -288,7 +393,7 @@ grid.arrange(p_comp1,p_comp2,ncol=2)
 
 dev.off()
 
-
+### Make this a function later on...
 for (i in 1:length(list_plots_meot_obj)){
   layout_m <- c(1,1)
   no_fig <-i+1
@@ -309,14 +414,75 @@ for (i in 1:length(list_plots_meot_obj)){
   
 }
 
-######### Plot temporal profiles...
+#########ANALYSING TEMPORAL COMPONENTS FROM MEOTS- crosscorrelation Plot temporal profiles ...
+
+### STEP 0: READ IN DATASETS RELATED TO TELECONNECTION AND PREVIOUS LOADINGS
+
+lag_window<-13
+telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
+mode_list_MEOT<-c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
+mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")    
+#mode_list_PCA<-paste("MSSA",1:15,sep="")
+#out_prefix<-"MEOT_paper_03302013"
+
+# on Benoit Mac
+in_path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_03102013"
+
+SAODI<-read.table(infile2,sep=",", header=TRUE)
+#Prepare data to write out in a textfile
+s_SAODI2 <- subset(SAODI, year>1981 & year<2008) #Subset rows that correspond to the conditions
+s_SAODI2<- subset(s_SAODI2, select=-year) #Remove the column year
+in_SAODI2<-as.vector(t(s_SAODI2))   #This transform the data frame into a one colum
+write.table(in_SAODI2,file=paste("SAOD_index_1981_2007",out_prefix,".txt",sep=""),sep=",")
+
+#Prepare data for cross lag correlation analysis and write out results
+s_SAODI <- subset(SAODI, year>1981 & year<2007) #Subset rows that correspond to the conditions
+s_SAODI<- subset(s_SAODI, select=-year) #Remove the column year
+in_SAODI<-as.vector(t(s_SAODI))   #This transform the data frame into a one colum
+write.table(in_SAODI,file=paste("SAOD_index_1981_2006",out_prefix,".txt",sep=""),sep=",")
+
+#Import results from MEOT and MSSA analyses with teleconneciton indices
+dat<-read.xls(infile3, sheet=1)
+tail(dat$Date_label)
+dat$SAOD<-in_SAODI  #Adding the SAOD index to all the MEOT/MSSA results in the data frame
+
+#Creating time series objects
+d_ts<-ts(data=dat,start=c(1982,1), end=c(2006,12), frequency=12, names=names(dat))
+colnames(d_ts)
+d_z<-as.zoo(d_ts)  #### THIS IS THE TIME SERIES OBJECT USED LATER ON
+
+
+#Creating time series objects
+
+pca_loadings<-pca$loadings[,1:npc] #extract first component...
+pca_v_loadings<-pca_varimax$loadings[,1:npc] #extract first component...
+tmp_names<-c(paste("PCn",1:npc,sep="")) #PCA without rotation
+colnames(pca_loadings)<-tmp_names
+tmp_names<-c(paste("PCv",1:npc,sep="")) #PCA with varimax rotation
+colnames(pca_v_loadings)<-tmp_names
+dat2<-cbind(dat,as.data.frame(pca_loadings))
+dat2<-cbind(dat2,as.data.frame(pca_v_loadings))
+d_ts<-ts(data=dat2,start=c(1982,1), end=c(2006,12), frequency=12, names=names(dat2))
+colnames(d_ts)
+d_z2<-as.zoo(d_ts)  #### THIS IS THE TIME SERIES OBJECT USED LATER ON
+
+telind
+mode_list<-tmp_names<-c(paste("PCn",1:npc,sep="")) #PCA with varimax rotation
+out_prefix_n<-paste("PCn_",out_prefix,sep="")
+#telind<-mode_list_PCA : if cross cor desired
+pcn_obj<-crosscor_lag_analysis_fun(telind,mode_list,d_z2,lag_window,fig=TRUE,out_prefix_n)
+mssa_obj<-crosscor_lag_analysis_fun(telind,mode_list_PCA,d_z2,lag_window,fig=FALSE,out_prefix_n)
+mode_list<-tmp_names<-c(paste("PCv",1:npc,sep="")) #PCA with varimax rotation
+pcv_obj<-crosscor_lag_analysis_fun(telind,mode_list,d_z2,lag_window,fig=TRUE,out_prefix_n)
+
+#debug(crosscor_lag_analysis_fun)
 
 l_df <- plot_temporal_components_IDRISI_ETM_proj(folder_components,pattern_str,out_dir,out_suffix) 
 
 #pattern_str<- c("sine9by9_L2","sine9by9_L4","sine9by9_L5","sine9by9_L8","sine9by9_L9","sine9by9_L18")
 pattern_str<- c("sine9x9_90_L2","sine9x9_90_L4","sine9x9_90_L5","sine9x9_90_L6",
                 "sine9x9_90_L8","sine9x9_90_L9","sine9x9_90_L18")
-folder_components <-list_components_folders
+folder_components <- list_components_folders
 
 for (i in 1:length(l_df)){
   df <-l_df[[i]]
