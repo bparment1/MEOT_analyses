@@ -32,6 +32,11 @@ library(plotrix)
 library(matrixStats) 
 library(colorRamps)                         #Color palettes for raster images
 library(gridExtra)
+library(foreign)                             # Library for format exchange (e.g. dbf,spss,sas etc.)
+library(gdata)                               # various tools with xls reading
+library(xts)                                 # basic package for time series analysis
+library(zoo)                                 # basic package for time series analysis
+library(forecast)                            # package containing ARIMA procedures
 
 ##### Functions used in this script #####
 
@@ -427,19 +432,23 @@ mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")
 
 # on Benoit Mac
 in_path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_03102013"
+infile1<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/SAODI-01-1854_06-2011_test.asc"             #GHCN shapefile containing variables for modeling 2010                 
+infile2<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/SAODI-01-1854_06-2011.csv"                     #List of 10 dates for the regression
+infile3<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/MEOT_MSSA_Telcon_indices_12112012.xlsx"                        #LST dates name
+infile4<-"mask_rgf_1_1.rst"
 
 SAODI<-read.table(infile2,sep=",", header=TRUE)
 #Prepare data to write out in a textfile
 s_SAODI2 <- subset(SAODI, year>1981 & year<2008) #Subset rows that correspond to the conditions
 s_SAODI2<- subset(s_SAODI2, select=-year) #Remove the column year
 in_SAODI2<-as.vector(t(s_SAODI2))   #This transform the data frame into a one colum
-write.table(in_SAODI2,file=paste("SAOD_index_1981_2007",out_prefix,".txt",sep=""),sep=",")
+write.table(in_SAODI2,file=paste("SAOD_index_1981_2007",out_suffix,".txt",sep=""),sep=",")
 
 #Prepare data for cross lag correlation analysis and write out results
 s_SAODI <- subset(SAODI, year>1981 & year<2007) #Subset rows that correspond to the conditions
 s_SAODI<- subset(s_SAODI, select=-year) #Remove the column year
 in_SAODI<-as.vector(t(s_SAODI))   #This transform the data frame into a one colum
-write.table(in_SAODI,file=paste("SAOD_index_1981_2006",out_prefix,".txt",sep=""),sep=",")
+write.table(in_SAODI,file=paste("SAOD_index_1981_2006",out_suffix,".txt",sep=""),sep=",")
 
 #Import results from MEOT and MSSA analyses with teleconneciton indices
 dat<-read.xls(infile3, sheet=1)
@@ -451,38 +460,47 @@ d_ts<-ts(data=dat,start=c(1982,1), end=c(2006,12), frequency=12, names=names(dat
 colnames(d_ts)
 d_z<-as.zoo(d_ts)  #### THIS IS THE TIME SERIES OBJECT USED LATER ON
 
-
 #Creating time series objects
 
-pca_loadings<-pca$loadings[,1:npc] #extract first component...
-pca_v_loadings<-pca_varimax$loadings[,1:npc] #extract first component...
-tmp_names<-c(paste("PCn",1:npc,sep="")) #PCA without rotation
-colnames(pca_loadings)<-tmp_names
-tmp_names<-c(paste("PCv",1:npc,sep="")) #PCA with varimax rotation
-colnames(pca_v_loadings)<-tmp_names
-dat2<-cbind(dat,as.data.frame(pca_loadings))
-dat2<-cbind(dat2,as.data.frame(pca_v_loadings))
-d_ts<-ts(data=dat2,start=c(1982,1), end=c(2006,12), frequency=12, names=names(dat2))
-colnames(d_ts)
-d_z2<-as.zoo(d_ts)  #### THIS IS THE TIME SERIES OBJECT USED LATER ON
 
-telind
-mode_list<-tmp_names<-c(paste("PCn",1:npc,sep="")) #PCA with varimax rotation
-out_prefix_n<-paste("PCn_",out_prefix,sep="")
-#telind<-mode_list_PCA : if cross cor desired
-pcn_obj<-crosscor_lag_analysis_fun(telind,mode_list,d_z2,lag_window,fig=TRUE,out_prefix_n)
-mssa_obj<-crosscor_lag_analysis_fun(telind,mode_list_PCA,d_z2,lag_window,fig=FALSE,out_prefix_n)
-mode_list<-tmp_names<-c(paste("PCv",1:npc,sep="")) #PCA with varimax rotation
-pcv_obj<-crosscor_lag_analysis_fun(telind,mode_list,d_z2,lag_window,fig=TRUE,out_prefix_n)
 
 #debug(crosscor_lag_analysis_fun)
 
 l_df <- plot_temporal_components_IDRISI_ETM_proj(folder_components,pattern_str,out_dir,out_suffix) 
 
+
 #pattern_str<- c("sine9by9_L2","sine9by9_L4","sine9by9_L5","sine9by9_L8","sine9by9_L9","sine9by9_L18")
-pattern_str<- c("sine9x9_90_L2","sine9x9_90_L4","sine9x9_90_L5","sine9x9_90_L6",
-                "sine9x9_90_L8","sine9x9_90_L9","sine9x9_90_L18")
+#pattern_str<- c("sine9x9_90_L2","sine9x9_90_L4","sine9x9_90_L5","sine9x9_90_L6",
+#                "sine9x9_90_L8","sine9x9_90_L9","sine9x9_90_L18")
+
 folder_components <- list_components_folders
+df<- l_df[[1]]
+names(df)
+npc<-25
+tmp_names<-c(paste("PC",1:npc,sep="")) #PCA with varimax rotation
+names(df)<-tmp_names
+dim(dat)
+x<- dat[seq(1, nrow(dat), by=2), ] 
+x2<- df[1:(nrow(df)-1),]
+dat2<- cbind(x,df[1:(nrow(df)-1),])
+
+#d_ts <- ts(data=dat2,start=c(1982,1), end=c(2006,11), frequency=6, names=names(dat2))
+#d_ts <- ts(data=dat2,start=c(1982,1), end=c(2006,11), deltat=1/6, names=names(dat2))
+d_ts <- ts(data=dat2)
+colnames(d_ts)
+rownames(d_ts)
+
+d_z2<-as.zoo(d_ts)  #### THIS IS THE TIME SERIES OBJECT USED LATER ON
+
+telind
+tmp_names<-c(paste("PC",1:npc,sep="")) #PCA with varimax rotation
+mode_list<- tmp_names
+out_prefix_n<-paste("PC_L12",out_suffix,sep="")
+#telind<-mode_list_PCA : if cross cor desired
+pcn_obj<- crosscor_lag_analysis_fun(telind,mode_list,d_z2,lag_window,fig=F,out_prefix_n)
+mssa_obj<- crosscor_lag_analysis_fun(telind,mode_list_PCA,d_z2,lag_window,fig=FALSE,out_prefix_n)
+mode_list<-tmp_names<-c(paste("PCv",1:npc,sep="")) #PCA with varimax rotation
+pcv_obj<-crosscor_lag_analysis_fun(telind,mode_list,d_z2,lag_window,fig=TRUE,out_prefix_n)
 
 for (i in 1:length(l_df)){
   df <-l_df[[i]]
