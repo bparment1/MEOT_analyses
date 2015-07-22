@@ -66,7 +66,7 @@ SST_dir <- "SST_1982_2007"
 mask_fname <- "mask_rgf_1_1.tif"
 out_suffix <-"_eot_pca_07022015"
 
-lf_sst <- list.files(path=file.path(in_dir,SST_dir),pattern=".rst$",full.names=T)
+lf_sst <- list.files(path=file.path(inDir,SST_dir),pattern=".rst$",full.names=T)
 
 
 #proj_str<-"+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
@@ -106,15 +106,15 @@ if(create_outDir_param==TRUE){
 
 ### STEP 0: READ IN DATASETS RELATED TO TELECONNECTION AND PREVIOUS LOADINGS
 
-SAODI<-read.table(infile2,sep=",", header=TRUE)
+#SAODI<-read.table(infile2,sep=",", header=TRUE)
 #Prepare data to write out in a textfile
-s_SAODI2 <- subset(SAODI, year>1981 & year<2008) #Subset rows that correspond to the conditions
-s_SAODI2<- subset(s_SAODI2, select=-year) #Remove the column year
-in_SAODI2<-as.vector(t(s_SAODI2))   #This transform the data frame into a one colum
-write.table(in_SAODI2,file=paste("SAOD_index_1981_2007",out_prefix,".txt",sep=""),sep=",")
+#s_SAODI2 <- subset(SAODI, year>1981 & year<2008) #Subset rows that correspond to the conditions
+#s_SAODI2<- subset(s_SAODI2, select=-year) #Remove the column year
+#in_SAODI2<-as.vector(t(s_SAODI2))   #This transform the data frame into a one colum
+#write.table(in_SAODI2,file=paste("SAOD_index_1981_2007",out_prefix,".txt",sep=""),sep=",")
 
 r_sst <- stack(lf_sst)
-r_mask <- raster(file.path(in_dir,mask_fname))
+r_mask <- raster(file.path(inDir,mask_fname))
 r_mask_NA <- r_mask
 NAvalue(r_mask_NA) <- 0
 #NAvalues()
@@ -143,7 +143,7 @@ r_sst <-brick("ANOM_SST_1982_2007_weighted.tif")
 SST_sgdf<-as(r_sst,"SpatialGridDataFrame")
 #SST_df<-as.data.frame(SST_rast) #drop the coordinates x and y
 SST_df<-as.data.frame(SST_sgdf)
-write.table(SST_df,"sst_f_weighted.txt",sep=",")
+write.table(SST_df,file.path(outDir,"sst_f_weighted.txt"),sep=",",row.names=F)
 rm(SST_sgdf)
 
 #nv<-312
@@ -151,3 +151,23 @@ SST_xy<-SST_df[,c("s1","s2")]
 
 
 ### DO PCA WITH SST_df: T-mode cross product from a standardized dataset...(i.e. correlation matrix)
+
+dim(SST_df)
+
+### DO PCA WITH SST_df: T-mode cross product from a standardized dataset...(i.e. correlation matrix)
+
+A<-SST_df[1:(ncol(SST_df)-2)] #drop s1 and s2 which contain coordinates
+dim(A) #n*c or 42098*312
+At<-scale(A) #center and reduce using sd and mean
+sd(At[,2]) #this must be equal to 1 since At is standardized by columns
+mean(At[,2]) #this must be equal to 0 since At is standardized by columns
+names_var<-paste("t",1:ncol(At),sep="_") #Rename columns 
+colnames(At)<-names_var
+#perform PCA with matrix operation...
+cAt<-t(At)%*%At #T mode!! --> (c*n)by(n*c) should get c*c matrix or 312*312 
+diag(cAt) #equal 1 since it is a correlation, only if divided by n-1!!!
+cAt<-cAt/(nrow(At)-1)
+diag(cAt)
+#cAt<-cAt/nrow(At) #reduce by number of row...!!! THIS IS NOT NECESSARY SINCE At has been already based on standardized??
+#note that cAt is standardized and has been divided by n, so it is equivalent to a correlation matrix
+Et<-eigen(cAt)
