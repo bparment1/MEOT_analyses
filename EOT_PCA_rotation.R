@@ -171,3 +171,37 @@ diag(cAt)
 #cAt<-cAt/nrow(At) #reduce by number of row...!!! THIS IS NOT NECESSARY SINCE At has been already based on standardized??
 #note that cAt is standardized and has been divided by n, so it is equivalent to a correlation matrix
 Et<-eigen(cAt)
+
+##Cross product PCA T mode
+#pca_SST<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+pca_SST_t_mode<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+unclass(pca_SST_t_mode$loadings) # extract the matrix of ??
+
+(nrow(At)-1)*ncol(At)  #Sum of the diagonal is 42097*312
+sum(Et$value)   
+sum(diag(cAt))
+sum(pca_SST_t_mode$value)
+mean(Et$vectors)  #This is equal to zero since there was centering!!
+1/var(Et$vectors)[1]
+var(Et$vectors)[1]
+var(Et$vectors)[2]
+var(Et$vectors)[3]
+
+#
+pca_IDRISI_covar<-read.xls(infile_pca, sheet=1)
+pca_IDRISI_cor<-read.xls(infile_pca, sheet=2)
+pca_IDRISI_eigenvalues<-read.xls(infile_pca, sheet=3)
+pca_IDRISI_eigenvectors<-read.xls(infile_pca, sheet=4)
+pca_IDRISI_loadings<-read.xls(infile_pca, sheet=5)
+
+###### CREATE SCORES IMAGES USING PREDICTED SCORES FROM PRINCIPAL
+pca_scores<-predict(pca_SST_t_mode,A)  #generate scores from original matrix and object
+pca_scores_spdf<-cbind(as.data.frame(pca_scores),SST_xy) #add coordinates
+coordinates(pca_scores_spdf)<-pca_scores_spdf[,c("s1","s2")] #promote to spdf
+
+#Now generate raster images...
+pca_scores_lf<-pca_to_raster_fun(pca_scores_spdf,SST1_m,-9999,out_prefix)
+
+pca_SST_s<-stack(pca_scores_lf)
+NAvalue(pca_SST_s)<- -9999
+#plot(subset(pca_IDRISI_s,1))
