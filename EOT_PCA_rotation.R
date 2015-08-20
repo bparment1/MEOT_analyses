@@ -1,13 +1,15 @@
 #################################    EOT AND PCA ROTATION  #######################################
 ########################### SPACE-TIME VARIABILITY  #############################################
 #This script analyzes  SST data.
-#The goal is to compare EOT and PCA with rotation.
+#The goal is to compare EOT and PCA with rotation and without
+#This is part of the Time Series analysis project started at IDRISI.
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 07/02/2015 
-#DATE MODIFIED: 08/15/2015
+#DATE MODIFIED: 08/19/2015
 #
-#PROJECT: Land transitions from Remote Sensing
+#PROJECT: MEOT/EOT climate variability extraction
+#
 ##################################################################################################
 #
 ###Loading r library and packages
@@ -93,9 +95,9 @@ pca_to_raster_fun<-function(pc_spdf,ref_raster,NA_val,out_prefix){
 #############################################
 ######## Parameters and arguments  ########
 
-#inDir <- "J:/Benoit/Data/MEOT_analyses_02202015"
-inDir <- "/home/parmentier/Data/MEOT12272012/Papers_writing_MEOT/MEOT_analyses_02202015"
-
+#inDir <- "J:/Benoit/Data/MEOT_analyses_02202015" #IDRISI 690-2 computer
+inDir <- "/home/parmentier/Data/MEOT12272012/Papers_writing_MEOT/MEOT_analyses_02202015" #Atlas
+inDir <- "/home/bparmentier/google_drive/Papers_writing_MEOT/MEOT_analyses_02202015" #bpy50
 SST_dir <- "SST_1982_2007"
 mask_fname <- "mask_rgf_1_1.tif"
 out_suffix <-"_eot_pca_07022015"
@@ -142,14 +144,14 @@ if(create_outDir_param==TRUE){
 ########################################################
 ##############  Start of th script  ##############
 
-### STEP 0: READ IN DATASETS RELATED TO TELECONNECTION AND PREVIOUS LOADINGS
+### PART 0: READ IN DATASETS RELATED TO TELECONNECTION AND PREVIOUS LOADINGS
 
-#SAODI<-read.table(infile2,sep=",", header=TRUE)
+SAODI<-read.table(file.path(inDir,infile2),sep=",", header=TRUE)
 #Prepare data to write out in a textfile
-#s_SAODI2 <- subset(SAODI, year>1981 & year<2008) #Subset rows that correspond to the conditions
-#s_SAODI2<- subset(s_SAODI2, select=-year) #Remove the column year
-#in_SAODI2<-as.vector(t(s_SAODI2))   #This transform the data frame into a one colum
-#write.table(in_SAODI2,file=paste("SAOD_index_1981_2007",out_prefix,".txt",sep=""),sep=",")
+s_SAODI2 <- subset(SAODI, year>1981 & year<2008) #Subset rows that correspond to the conditions
+s_SAODI2<- subset(s_SAODI2, select=-year) #Remove the column year
+in_SAODI2<-as.vector(t(s_SAODI2))   #This transform the data frame into a one colum
+write.table(in_SAODI2,file=paste("SAOD_index_1981_2007",out_suffix,".txt",sep=""),sep=",")
  
 r_sst <- stack(lf_sst)
 projection(r_sst) <- CRS_WGS84 #assign projection
@@ -160,6 +162,7 @@ NAvalue(r_mask_NA) <- 0
 #NAvalues()
 levelplot(r_sst,layer=1)
 levelplot(r_mask,layer=1)
+plot(r_sst,y=1,col=matlab.like(255))
 
 r_sst_m <- mask(r_sst,r_mask_NA,filename=paste("sst_",out_suffix,".tif",sep=""),overwrite=T)
 levelplot(r_sst_m,layer=1)
@@ -178,7 +181,8 @@ rm(r_sst)
 r_sst <-brick("ANOM_SST_1982_2007_weighted.tif")
 
 SST1_m <- subset(r_sst,1)
-  
+plot(SST1_m,col=matlab.like(255))  
+
 ##############################################################
 #### STEP 2: get data ready for PCA by lagging data frame...
 
@@ -195,6 +199,8 @@ SST_xy<-SST_df[,c("s1","s2")]
 ### DO PCA WITH SST_df: T-mode cross product from a standardized dataset...(i.e. correlation matrix)
 
 dim(SST_df)
+
+############# PART 1: CARRY PCA IN T AND S mode with/without varimax rotation ###################
 
 ### DO PCA WITH SST_df: T-mode cross product from a standardized dataset...(i.e. correlation matrix)
 
@@ -214,15 +220,40 @@ diag(cAt)
 #note that cAt is standardized and has been divided by n, so it is equivalent to a correlation matrix
 Et<-eigen(cAt)
 
+PC_scores<-At%*%Et$vectors # to
+PC_scores<-as.matrix(A)%*%Et$vectors # to
+
+###COMPARIING SCORES FROM FROM "eigen" and principal function
+## Note that the scores are equal only if the square root of eigenvalues has been used to reduce (normalize) the Eigen Vectors!!!
+
+PC_scores<-At%*%Et$vectors # to
+PC_scores<-as.matrix(A)%*%Et$vectors # to
+
+pca_scores<-predict(pca_SST_t_mode,A)
+
+cor(PC_scores[,1],pca_scores[,1]) 
+plot(PC_scores[,1],pca_scores[,1]) 
+PC_scores[1:10,1]/pca_scores[1:10,1]
+sqrt(Et$values[1])
+(PC_scores[1:10,1]/sqrt(Et$values[1]))/pca_scores[1:10,1]
+plot(PC_scores[,1]/sqrt(Et$values[1]),pca_scores[,1]) 
+
+mean(PC_scores[,1])
+sd(PC_scores[,1])
+mean(pca_scores[,1]) #This has been standardize!!! Principal standardizes the values!!
+sd(pca_scores[,1])
+
 ##Cross product PCA T mode
 #pca_SST<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-pca_SST_t_mode<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none") #psych package
-unclass(pca_SST_t_mode$loadings) # extract the matrix of ??
-head(unclass(pca_SST_t_mode$loadings)) # extract the matrix of ??
-#<- as.data.frame(unclass(pca_SST_t_mode$loadings))) # extract the matrix of ??
+pca_SST_t_mode_unrotated <-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none") #psych package
+class(unclass(pca_SST_t_mode_unrotated$loadings)) # extract the matrix of ??
+head(unclass(pca_SST_t_mode_unrotated$loadings)) # extract the matrix of ??
 
-pca_SST_t_mode_varimax <-principal(r, nfactors = npc, residuals = FALSE,rotate="varimax",n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
-          impute="median",oblique.scores=TRUE,method="regression",...)
+pca_SST_t_mode_varimax <-principal(r=cAt, nfactors = npc, residuals = FALSE,rotate="varimax",
+                                   n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
+          impute="median",oblique.scores=TRUE,method="regression")
+principal_df_unrotated<- as.data.frame(unclass(pca_SST_t_mode_unrotated$loadings)) # extract the matrix of ??
+principal_df_varimax<- as.data.frame(unclass(pca_SST_t_mode_varimax$loadings)) # extract the matrix of ??
 
 (nrow(At)-1)*ncol(At)  #Sum of the diagonal is 42097*312
 sum(Et$value)   #equal to 312
@@ -234,17 +265,49 @@ var(Et$vectors)[1]
 var(Et$vectors)[2]
 var(Et$vectors)[3]
 
-## read in IDRISI and SPSS results
-pca_IDRISI_covar<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=1)
-pca_IDRISI_cor<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=2)
-pca_IDRISI_eigenvalues<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=3)
-pca_IDRISI_eigenvectors<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=4)
-pca_IDRISI_loadings<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=5)
+####################################################################
+### NOW DO PCA WITH S-mode
 
-spss_data_loadings_pca_unrotated <-read.xls(file.path(inDir,infile_pca_spss), sheet="loadings_pca_unrotated") #this is T-mode using cor matrix
-spss_data_loadings_pca_varimax <-read.xls(file.path(inDir,infile_pca_spss), sheet="loadings_pca_rotated") #this is T-mode using cor matrix, varimax rotation
+## DO PCA WITH SST_df: S-mode cross product
+#PC_scores[1:10,1]/pca_scores[1:10,1]
+A <- SST_df[1:(ncol(SST_df)-2)] #remove x,y fields to obtain a data.frame with 42098*312 dimension
+Atr<-t(A)
+Ats<-scale(Atr) #center time series...(observations/time profiles or pixels in images)
+As<-t(Ats) #transpose back
+cAs<-Ats%*%As #get cross product matrix wihtout centering or scaling in the var dimensions
+cAs<-cAs/nrow(cAs)
+Es<-eigen(cAs) #cross product S-mode
+diag(cAs)
 
- 
+##Cross product PCA S mode
+#pca_SST<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+pca_SST_s_mode_unrotated <-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+unclass(pca_SST_s_mode_unrotated$loadings) # extract the matrix of ??
+
+pca_SST_s_mode_unrotated <-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+unclass(pca_SST_s_mode_unrotated$loadings) # extract the matrix of ??
+pca_SST_s_mode_varimax <-principal(r=cAs, nfactors = npc, residuals = FALSE,rotate="varimax",
+                                   n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
+                                   impute="median",oblique.scores=TRUE,method="regression")
+
+principal_s_mode_df_unrotated<- as.data.frame(unclass(pca_SST_s_mode_unrotated$loadings)) # extract the matrix of ??
+principal_s_mode_df_varimax<- as.data.frame(unclass(pca_SST_s_mode_varimax$loadings)) # extract the matrix of ??
+
+sum(Es$value)
+sum(diag(cAs)) #sum of eigenvalue is equal to the number of variable...
+sum(pca_SST_s_mode$value)
+
+##Cross product PCA T mode
+#pca_SST<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+pca_SST_s_mode<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+unclass(pca_SST_s_mode$loadings) # extract the matrix of ??
+
+sum(Es$value)
+sum(diag(cAs)) #sum of eigenvalue is equal to the number of variable...
+sum(pca_SST_s_mode$value)
+
+#### PART 2: Assessing and comparing all PCA methods
+
 ###### CREATE SCORES IMAGES USING PREDICTED SCORES FROM PRINCIPAL
 pca_scores <- predict(pca_SST_t_mode,A)  #generate scores from original matrix and object
 pca_scores_spdf<-cbind(as.data.frame(pca_scores),SST_xy) #add coordinates
@@ -258,9 +321,22 @@ NAvalue(pca_SST_s)<- -9999
 #plot(subset(pca_IDRISI_s,1))
 
 
-
 ### Comparison Loadings and scores between R, SPSS and IDRISI
 
+## read in IDRISI and SPSS results
+pca_IDRISI_covar<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=1)
+pca_IDRISI_cor<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=2)
+pca_IDRISI_eigenvalues<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=3)
+pca_IDRISI_eigenvectors<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=4)
+pca_IDRISI_loadings<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=5)
+
+spss_data_loadings_pca_unrotated <-read.xls(file.path(inDir,infile_pca_spss), sheet="loadings_pca_unrotated") #this is T-mode using cor matrix
+spss_data_loadings_pca_varimax <-read.xls(file.path(inDir,infile_pca_spss), sheet="loadings_pca_rotated") #this is T-mode using cor matrix, varimax rotation
+
+plot(spss_data_loadings_pca_varimax[["pc10"]],type="l")
+lines(spss_data_loadings_pca_unrotated[["pc10"]],col="red")
+cor(spss_data_loadings_pca_varimax[["pc10"]],spss_data_loadings_pca_unrotated[["pc10"]])
+cor(spss_data_loadings_pca_varimax[["pc5"]],spss_data_loadings_pca_unrotated[["pc5"]])
 
 plot(spss_data_loadings_pca_unrotated$pc1,unclass(pca_SST_t_mode$loadings)[,1])
 cor(spss_data_loadings_pca_unrotated$pc1,unclass(pca_SST_t_mode$loadings)[,1])
@@ -268,4 +344,83 @@ cor(spss_data_loadings_pca_unrotated$pc1,unclass(pca_SST_t_mode$loadings)[,1])
 plot(pca_IDRISI_loadings$CMP.1,unclass(pca_SST_t_mode$loadings)[,1])
 cor(pca_IDRISI_loadings$CMP.1,unclass(pca_SST_t_mode$loadings)[,1])
 
+pca_SST_t_mode_varimax 
+
+head(principal_df_varimax)
+plot(principal_df_varimax[["PC1"]],type="l")
+lines(principal_df_unrotated[["PC1"]],col="red")
+lines(spss_data_loadings_pca_varimax[["pc1"]],col="blue")
+
+plot(principal_s_mode_df_varimax[["PC1"]],type="l")
+lines(principal_s_mode_df_unrotated[["PC1"]],col="red")
+lines(spss_data_loadings_pca_varimax[["pc1"]],col="blue")
+plot(principal_s_mode_df_unrotated[["PC1"]],col="red",type="l")
+
+plot(spss_data_loadings_pca_varimax[["pc10"]],type="l")
+lines(spss_data_loadings_pca_unrotated[["pc10"]],col="red")
+
+#################################################################
+########################## END OF SCRIPT #########################
+#################################################################
+
+#cAt<-A%*%At
+#Ae<-eigen(cAt)
+#principal(r, nfactors = 1, residuals = FALSE,rotate="varimax",n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
+#          impute="median",oblique.scores=TRUE,method="regression",...)
+
+
+
+##Correlation PCA T mode
+#pca_SST<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+
+#pca_SST_cor_t_mode<-principal(r=corAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+#unclass(pca_SST_t_mode$loadings) # extract the matrix of ??
+# 
+# sum(Et$value)
+# sum(diag(cAt))
+# sum(pca_SST_t_mode$value)
+# 
+# head(unclass(pca_SST_t_mode$loadings)[,1:npc])
+# head(Et$vectors[,1:npc]) #not equal...because not standardized...
+# Estd <-  Et$vectors%*% diag(sqrt(Et$values))
+# head(Estd)
+# head(unclass(pca_SST$loadings)[,1:npc])
+# 
+# #cAt<-A%*%At
+# #Ae<-eigen(cAt)
+# #principal(r, nfactors = 1, residuals = FALSE,rotate="varimax",n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
+# #          impute="median",oblique.scores=TRUE,method="regression",...)
+# 
+# 
+# ##############
+# ### 
+# require(psych) 
+# data(mtcars) 
+# rawd <- mtcars[,c("am","carb","cyl","disp","drat","gear","hp","mpg")] #subset the original data.frame
+# 
+# ## compute acp 
+# .PC <- princomp(~am+carb+cyl+disp+drat+gear+hp+mpg, cor=TRUE, data=mtcars) 
+# pca <- principal(rawd, nfactors = 8, residuals = T, rotate="none", scores=T) 
+# 
+# ## eigenvectors of the correlation matrix of raw data 
+# eigens <- eigen(cor(rawd)) #eigen value decomposition
+# eigens$vectors #matrix of the eigenvectors, eigens is a list
+# unclass(loadings(.PC))  # component 'loadings' in princomp parlance are the eigenvectors!!!
+# 
+# ## correlation matrix between raw data and unrotated component scores 
+# ## 'loadings' in ?principal parlance and 'component matrix' in SPSS --> loadings in princomp are the eigenvectors 
+# # components scores can be obtained by multiplying the original data by the eigenvectors...
+# eigens$vectors %*% diag(sqrt(eigens$values)) ##standardizing the eigenvectors...(it is already centered)
+# cor(cbind(rawd, .PC$scores))  #loadings are the correlation between the PC scores and the origina variables
+# unclass(pca$loadings) # extract the matrix of ??
+# 
+# ## extract un-rotated scores of principal components 
+# head(scale(rawd) %*% eigens$vectors) # app, but very similar results 
+# head(.PC$scores) 
+# head(pca$scores) # scale'd, and obtained via regression on scale'd data 
+# head(factor.scores(scale(rawd), 
+#                    unclass(pca$loadings))) # same scores as from ?principal 
+# #for differeneces between ?princomp and ?principal scores 
+# #see last paragraph of Details in ?principal 
+# rm(PC_std_scores)
 
