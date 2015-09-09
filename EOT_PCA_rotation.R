@@ -6,7 +6,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 07/02/2015 
-#DATE MODIFIED: 09/05/2015
+#DATE MODIFIED: 09/08/2015
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -92,6 +92,193 @@ pca_to_raster_fun<-function(pc_spdf,ref_raster,NA_val,out_prefix){
   } 
   return(pc_scores_lf)
 }
+
+run_pca_fun <- function(A,mode="T",rotation_opt="none",matrix_val=NULL,npc=1,loadings=TRUE,scores_opt=TRUE){
+  
+  #Arguments
+  #mode: T, s mode or other mode , note that this option is not in use at this moment, use matrix_val
+  #rotation_opt: which option to use to rotate pc
+  #npc: number of components produced
+  #matrix_val: square matrix used in the computation of eigen values, vectors
+  #A: data matrix
+  
+  #######
+  
+  
+  #if(s.null(matrix_val)){
+  #  as.matrix(df_val)
+  #}
+  
+  ##Cross product PCA S modes
+  
+  pca_principal_obj <-principal(r=matrix_val, #
+                                nfactors = npc, 
+                                residuals = FALSE, 
+                                covar=TRUE, #use covar option...
+                                rotate = rotation_opt,
+                                scores=scores_opt,
+                                oblique.scores=TRUE,
+                                method="regression")
+  
+  principal_loadings_df <- as.data.frame(unclass(pca_principal_obj$loadings)) # extract the matrix of ??
+  #Add scores...
+  principal_scores <- predict(pca_principal_obj,A)
+  
+  ###
+  obj_principal <- list(pca_principal_obj,principal_loadings_df,principal_scores,A)
+  names(obj_principal) <- c("pca_principal","loadings","scores","data_matrix")
+  return(obj_principal)
+  
+}
+
+cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
+  
+  cor_table <- matrix(data=NA,nrow=length(ts1),ncol=length(ts2))
+  #ag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
+  #lag_table_text<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list)) #Formatted table used in the paper
+  
+  for(i in 1:ncol(ts1)){
+    tfs1 <- ts1[,i]
+    #retain ccf!!!
+    names_tfs1 <- names(ts1)[i]
+    
+    for(j in 1:ncol(ts2)){
+      tfs2 <- ts2[,j]
+      names_tfs2 <- names(ts2)[j]
+      
+      cor_val <- cor(tfs1,tfs2)
+      
+      if (fig=="TRUE"){
+        plot_name<-paste(names_tfs1, "and",names_tfs2,"scatter_plot_cor_analysis",sep="_")
+        png(paste(plot_name,"_",out_suffix,".png", sep=""))
+        plot(tfs2 ~ tfs1, main= paste(names_tfs1, "and", names_tfs2 ,"cor analysis",sep=" "), 
+             ylab=names_tfs2,
+             xlab=names_tfs1)
+        dev.off()
+        
+        y_range <- range(c(tfs1,tfs2))
+        plot_name<-paste(names_tfs1, "and",names_tfs2,"series_profile_cor_analysis",sep="_")
+        plot(tfs1, main= paste(names_tfs1, "and", names_tfs2,"cor analysis",sep=" "), 
+             ylab="Series",
+             xlab="time steps",
+             y_lim=y_range,
+             type="l")
+        par(new = TRUE)
+        plot(tfs2, type = "l", col="blue", axes = FALSE, bty = "n", xlab = "", ylab = "")
+        axis(side=4, at = pretty(range(tfs2)))
+        mtext("z", side=4, line=3)
+        #lines(tfs2, col="blue")
+             
+        dev.off()
+        
+      }
+      
+      ######### NOW FIND THE m
+      
+      cor_table[i,j] <- format(cor_val,digits=4)
+      
+      ##Keep ccf lag somewhere
+      
+    }
+  }
+  
+  cor_table <-as.data.frame(cor_table)
+  names(cor_table) <- names(ts2)
+  rownames(cor_table)<- names(ts1)
+  file_name <- paste("cor_table_",out_suffix,".txt",sep="")
+  write.table(cor_table,file=file_name,sep=",")
+  
+  return(cor_table)
+  
+}
+
+crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_prefix){
+  #This function crosss correlates between two sets of time series given some lag window.
+  #Arguments:
+  #1)telind: time series 1 as character vector
+  #2)modelist: time series 2 as character vector
+  #3)d_z: zoo object 
+  #4)lag_window:
+  #5)fig:
+  
+  lag_table_ext<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
+  lag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
+  lag_table_text<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list)) #Formatted table used in the paper
+  #lag_cross_cor_PCA<-vector("list",length(mode_list))
+  lag_m<-seq(-1*lag_window,lag_window,1)
+  #retain ccf!!!
+  #list_ccf_lag_table
+  
+  #lag_cross_cor_PCA_m<-array(data=NA,nrow=length(lag_m),ncol=length(mode_list))
+  for (i in 1:length(telind)){
+    telindex<-telind[i]
+    pos1<-match(telindex,names(d_z))
+    #retain ccf!!!
+    for (j in 1:length(mode_list)){
+      mode_n<-mode_list[j]
+      pos2<-match(mode_n,names(d_z))
+      ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=lag_window)  #Note that ccf does not take
+      
+      lag_m<-seq(-1*lag_window,lag_window,1)
+      ccf_obj$lag[,1,1]<-lag_m  #replacing lag values because continuous
+      
+      if (fig=="TRUE"){
+        plot_name<-paste(telindex, "and", mode_n,"lag analysis",sep="_")
+        png(paste(plot_name,"_",out_prefix,".png", sep=""))
+        plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
+             xlab="Lag (month)", ylim=c(-1,1))
+        dev.off()
+      }
+      
+      ######### NOW FIND THE m
+      absext <-max(abs(ccf_obj$acf)) # maximum of the extremum
+      pos<-match(absext,ccf_obj$acf) #find the position and lag, if NA it means it was negative
+      if (is.na(pos)) {
+        pos<-match(absext*-1,ccf_obj$acf)
+        absext<-absext*-1   #recover the sign
+      } 
+      absext_lag<-ccf_obj$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
+      
+      lag_table_ext[i,j]<-absext
+      lag_table_lag[i,j]<-absext_lag
+      #number<-format(absext,digits=3)
+      ext<-round(absext,digits=3)
+      element<-paste(ext," (",absext_lag,")",sep="")
+      lag_table_text[i,j]<-element
+      
+      ##Keep ccf lag somewhere
+    }
+  }
+  
+  lag_table_ext<-as.data.frame(lag_table_ext)
+  names(lag_table_ext)<-mode_list
+  rownames(lag_table_ext)<-telind
+  file_name<-paste("lag_table_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
+  write.table(lag_table_ext,file=file_name,sep=",")
+  
+  lag_table_lag<-as.data.frame(lag_table_lag)
+  names(lag_table_lag)<-mode_list
+  rownames(lag_table_lag)<-telind
+  file_name<-paste("lag_table_lag_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
+  write.table(lag_table_lag,file=file_name,sep=",")
+  
+  lag_table_text<-as.data.frame(lag_table_text)
+  names(lag_table_text)<-mode_list
+  rownames(lag_table_text)<-telind
+  file_name<-paste("lag_table_lag_ext_text", lag_window,"_",out_prefix,".txt",sep="")
+  write.table(lag_table_text,file=file_name,sep=",")
+  
+  #create return object
+  
+  crosscor_obj<-list(lag_table_ext,lag_table_lag,lag_table_text)
+  names(crosscor_obj)<-c("extremum","lag_ext","text")
+  file_name<-paste("crosscor_obj_lag_analysis_", lag_window,"_",out_prefix,".RData",sep="")
+  save(crosscor_obj,file=file_name)
+  
+  return(crosscor_obj)
+}
+
+
 #############################################
 ######## Parameters and arguments  ########
 
@@ -148,11 +335,11 @@ if(create_outDir_param==TRUE){
 
 ### PART 0: READ IN DATASETS RELATED TO TELECONNECTION AND PREVIOUS LOADINGS
 
-SAODI<-read.table(file.path(inDir,infile2),sep=",", header=TRUE)
+SAODI <- read.table(file.path(inDir,infile2),sep=",", header=TRUE)
 #Prepare data to write out in a textfile
 s_SAODI2 <- subset(SAODI, year>1981 & year<2008) #Subset rows that correspond to the conditions
-s_SAODI2<- subset(s_SAODI2, select=-year) #Remove the column year
-in_SAODI2<-as.vector(t(s_SAODI2))   #This transform the data frame into a one colum
+s_SAODI2 <- subset(s_SAODI2, select=-year) #Remove the column year
+in_SAODI2 <- as.vector(t(s_SAODI2))   #This transform the data frame into a one colum
 write.table(in_SAODI2,file=paste("SAOD_index_1981_2007",out_suffix,".txt",sep=""),sep=",")
  
 ## read in eot info:
@@ -208,7 +395,6 @@ rm(SST_sgdf)
 #nv<-312
 SST_xy<-SST_df[,c("s1","s2")]
 
-
 ### DO PCA WITH SST_df: T-mode cross product from a standardized dataset...(i.e. correlation matrix)
 
 dim(SST_df)
@@ -235,8 +421,11 @@ Et<-eigen(cAt) #this creates a list of two objects
 Et$vectors #312*312, eigenvectors...
 Et$values #1*312, eigenvalues...
 
-PC_scores <- At%*%Et$vectors # to obtain the scores, multiply the eigenvector matrix by the data matrix
+pc_scores <- At%*%Et$vectors # to obtain the scores, multiply the eigenvector matrix by the data matrix
 PC_scores <- as.matrix(A)%*%Et$vectors # to
+
+sd(PC_scores[,1])
+
 
 ###COMPARING SCORES FROM FROM "eigen" and principal function
 ## Note that the scores are equal only if the square root of eigenvalues has been used to reduce (normalize) the Eigen Vectors!!!
@@ -262,7 +451,7 @@ principal_t_mode_df_varimax <- as.data.frame(unclass(pca_SST_t_mode_varimax$load
 (nrow(At)-1)*ncol(At)  #Sum of the diagonal is 42097*312
 sum(Et$value)   #equal to 312
 sum(diag(cAt))  #
-sum(pca_SST_t_mode$value)
+sum(pca_SST_t_mode_unrotated$values)
 mean(Et$vectors)  #This is equal to zero since there was centering!!
 1/var(Et$vectors)[1]
 var(Et$vectors)[1]
@@ -278,8 +467,8 @@ pc_t_principal_scores1 <- predict(pca_SST_t_mode_unrotated,A)
 pc_t_principal_scores2 <- predict(pca_SST_t_mode_unrotated,At)
 pc_t_principal_scores1[,1]-pc_t_principal_scores2[,1]
 
-cor(pc_t_principal_scores[,1],pc_scores[,1])
-plot(pc_t_principal_scores[,1],pc_scores[,1])
+cor(pc_t_principal_scores1[,1],pc_scores[,1])
+plot(pc_t_principal_scores1[,1],pc_scores[,1])
 
 plot(principal_t_mode_df_unrotated[,1],Et$vectors[,1])
 cor(principal_t_mode_df_unrotated[,1],Et$vectors[,1])# ok correlation of 1!!
@@ -310,7 +499,7 @@ PC_scores <- At%*%Et$vectors # to
 PC_scores <- as.matrix(A)%*%Et$vectors # to
 mean(PC_scores[,1])
 sd(PC_scores[,1])
-
+var(PC_scores[,1])
 
 cor(PC_scores[,1],pca_scores[,1]) 
 plot(PC_scores[,1],pca_scores[,1]) 
@@ -430,41 +619,51 @@ cor(principal_t_mode_df_varimax[["PC4"]],spss_data_loadings_pca_varimax[["pc4"]]
 #ok now we should do this for different truncation...if one can show that the corr
 #increases when the truncation decreases (more pc) then we will be ok...
 
-run_pca_fun(mode="T",rotation_opt="none",df_val,matrix_val=NULL,npc=1,loadings=TRUE,scores_opt=TRUE){
-  #Arguments
-  #mode: T, s mode or other mode , note that this option is not in use at this moment, use matrix_val
-  #rotation_opt: which option to use to rotate pc
-  #matrix_val
-  #if(!is.null(matrix_val)){
-  #  as.matrix(df_val)
-  #}
+no_component <- 10
+dim(A)
+rotation_opt <- "none"
 
-  ##Cross product PCA S mode
-  #pca_SST<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-  pca_principal_obj <-principal(r=matrix_val, nfactors = npc, residuals = FALSE, 
-                                       covar=TRUE, #use covar option...
-                                       rotate = rotation_opt,
-                                       scores=scores_opt,
-                                       oblique.scores=T,
-                                       method="regression")
+#debug(run_pca_fun)
+#test <- run_pca_fun(A,mode="T",rotation_opt=rotation_opt,matrix_val=cAt,npc=no_component,loadings=TRUE,scores_opt=TRUE) 
+
+
+list_no_component <- c(10,20,30,40,50,60,70,80,90,100)
+
+list_pca <- vector("list",length=length(list_no_component))
+l_loadings <- vector("list",length=length(list_no_component))
+for(i in 1:length(list_no_component)){
+  no_component <- list_no_component[i]
+  list_pca[[i]] <- run_pca_fun(A,mode="T",rotation_opt=rotation_opt,
+                               matrix_val=cAt,npc=no_component,
+                               loadings=TRUE,scores_opt=TRUE) 
+  l_loadings[[i]] <- list_pca[[i]]$loadings
   
-  unclass(pca_SST_s_mode_unrotated$loadings) # extract the matrix of ??
+  cor_df <- cor_series_fun(eot_s7_df[,-1],l_loadings[[i]],fig=F,out_suffix)
   
-  pca_SST_s_mode_varimax <-principal(r=cAs, nfactors = npc, residuals = FALSE,rotate="varimax",
-                                     n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
-                                     impute="median",oblique.scores=TRUE,method="regression")
-  
-  principal_loadings_df <- as.data.frame(unclass(pca_principal_obj$loadings)) # extract the matrix of ??
-  #Add scores...
-  #
 }
+
+l_loadings <- lapply(1:length(list_pca),function(i){list_pca[[i]]$loadings})
 
 #diff could also be due to spatial average of 7 in EOT
 #make a function for comparison...
 
 #Also compare to PCA...
+eot_s7_df[,-1]
+debug(cor_series_fun)
+cor_df <- cor_series_fun(eot_s7_df[,-1],l_loadings[[1]],fig=F,out_suffix)
+  
+
+
+
+
+
+
+
+
 
 cor(eot_s7_df$eot_1,principal_s_mode_df_unrotated[["PC1"]])
+
+
 cor(eot_s7_df$eot_1,principal_s_mode_df_varimax[["PC1"]])
 
 cor(eot_s7_df$eot_2,principal_s_mode_df_unrotated[["PC2"]])
