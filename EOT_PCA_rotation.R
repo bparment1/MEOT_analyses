@@ -192,90 +192,47 @@ cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
   
 }
 
-crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_prefix){
-  #This function crosss correlates between two sets of time series given some lag window.
-  #Arguments:
-  #1)telind: time series 1 as character vector
-  #2)modelist: time series 2 as character vector
-  #3)d_z: zoo object 
-  #4)lag_window:
-  #5)fig:
+comparison_pca_eot_fun<- function(list_no_component,data_matrix,rotation_opt,fig_opt,n_cores,out_suffix){
+  ####
+  ##  
+  #This functions runs pca with or without rotation and compares loadings to a ref_dataset
+  #PARAMETERS:
+  #data_matrix: data matrix before cross product
+  #cross_matrix: matrix used in the PCA
+  #rotation_opt: rotation used in pca
+  #ref_data: data.frame with loadings or series of the same size to be compared to (e.g. eot)
+  #fig_opt: figures to generate
+  #list_no_component: components to generate as a list
+  #n_cores: number of cores used in the parallel processing, not in used yet
+  #out_suffix: output suffix for files generated
+  #
+  ##### BEGIN SCRIPT ######
   
-  lag_table_ext<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
-  lag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
-  lag_table_text<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list)) #Formatted table used in the paper
-  #lag_cross_cor_PCA<-vector("list",length(mode_list))
-  lag_m<-seq(-1*lag_window,lag_window,1)
-  #retain ccf!!!
-  #list_ccf_lag_table
+  out_suffix_str <- paste(rotation_opt,out_suffix,sep="_")
+  list_pca <- vector("list",length=length(list_no_component))
+  l_loadings <- vector("list",length=length(list_no_component))
+  list_cor_df <- vector("list",length=length(list_no_component))
   
-  #lag_cross_cor_PCA_m<-array(data=NA,nrow=length(lag_m),ncol=length(mode_list))
-  for (i in 1:length(telind)){
-    telindex<-telind[i]
-    pos1<-match(telindex,names(d_z))
-    #retain ccf!!!
-    for (j in 1:length(mode_list)){
-      mode_n<-mode_list[j]
-      pos2<-match(mode_n,names(d_z))
-      ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=lag_window)  #Note that ccf does not take
-      
-      lag_m<-seq(-1*lag_window,lag_window,1)
-      ccf_obj$lag[,1,1]<-lag_m  #replacing lag values because continuous
-      
-      if (fig=="TRUE"){
-        plot_name<-paste(telindex, "and", mode_n,"lag analysis",sep="_")
-        png(paste(plot_name,"_",out_prefix,".png", sep=""))
-        plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
-             xlab="Lag (month)", ylim=c(-1,1))
-        dev.off()
-      }
-      
-      ######### NOW FIND THE m
-      absext <-max(abs(ccf_obj$acf)) # maximum of the extremum
-      pos<-match(absext,ccf_obj$acf) #find the position and lag, if NA it means it was negative
-      if (is.na(pos)) {
-        pos<-match(absext*-1,ccf_obj$acf)
-        absext<-absext*-1   #recover the sign
-      } 
-      absext_lag<-ccf_obj$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
-      
-      lag_table_ext[i,j]<-absext
-      lag_table_lag[i,j]<-absext_lag
-      #number<-format(absext,digits=3)
-      ext<-round(absext,digits=3)
-      element<-paste(ext," (",absext_lag,")",sep="")
-      lag_table_text[i,j]<-element
-      
-      ##Keep ccf lag somewhere
-    }
+  for(i in 1:length(list_no_component)){
+    
+    no_component <- list_no_component[i]
+    list_pca[[i]] <- run_pca_fun(A=data_matrix,mode="T",rotation_opt=rotation_opt,
+                                 matrix_val=cross_matrix,
+                                 npc=no_component,
+                                 loadings=TRUE,
+                                 scores_opt=TRUE) 
+    l_loadings[[i]] <- list_pca[[i]]$loadings
+    list_cor_df[[i]] <- cor_series_fun(ref_data,l_loadings[[i]],fig=fig_opt,out_suffix_str)
+    
   }
   
-  lag_table_ext<-as.data.frame(lag_table_ext)
-  names(lag_table_ext)<-mode_list
-  rownames(lag_table_ext)<-telind
-  file_name<-paste("lag_table_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
-  write.table(lag_table_ext,file=file_name,sep=",")
-  
-  lag_table_lag<-as.data.frame(lag_table_lag)
-  names(lag_table_lag)<-mode_list
-  rownames(lag_table_lag)<-telind
-  file_name<-paste("lag_table_lag_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
-  write.table(lag_table_lag,file=file_name,sep=",")
-  
-  lag_table_text<-as.data.frame(lag_table_text)
-  names(lag_table_text)<-mode_list
-  rownames(lag_table_text)<-telind
-  file_name<-paste("lag_table_lag_ext_text", lag_window,"_",out_prefix,".txt",sep="")
-  write.table(lag_table_text,file=file_name,sep=",")
-  
-  #create return object
-  
-  crosscor_obj<-list(lag_table_ext,lag_table_lag,lag_table_text)
-  names(crosscor_obj)<-c("extremum","lag_ext","text")
-  file_name<-paste("crosscor_obj_lag_analysis_", lag_window,"_",out_prefix,".RData",sep="")
+  ### prepare object to return
+  comp_pca_eot_obj <- list(list_pca,list_cor_df,list_cor_df)
+  names(comp_pca_eot_obj) <- c("list_pca","list_cor","list_cor_df")
+  file_name<-paste("cor_analysis_obj_",out_suffix_str,".RData",sep="")
   save(crosscor_obj,file=file_name)
   
-  return(crosscor_obj)
+  return(comp_pca_eot_obj)
 }
 
 
@@ -565,126 +522,41 @@ pca_SST_s<-stack(pca_scores_lf)
 NAvalue(pca_SST_s)<- -9999
 #plot(subset(pca_IDRISI_s,1))
 
-
-### Comparison Loadings and scores between R, SPSS and IDRISI
-
-## read in IDRISI and SPSS results
-pca_IDRISI_covar<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=1)
-pca_IDRISI_cor<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=2)
-pca_IDRISI_eigenvalues<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=3)
-pca_IDRISI_eigenvectors<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=4)
-pca_IDRISI_loadings<-read.xls(file.path(inDir,infile_pca_IDRISI), sheet=5)
-
-spss_data_loadings_pca_unrotated <-read.xls(file.path(inDir,infile_pca_spss), sheet="loadings_pca_unrotated") #this is T-mode using cor matrix
-spss_data_loadings_pca_varimax <-read.xls(file.path(inDir,infile_pca_spss), sheet="loadings_pca_rotated") #this is T-mode using cor matrix, varimax rotation
-
-plot(spss_data_loadings_pca_varimax[["pc10"]],type="l")
-lines(spss_data_loadings_pca_unrotated[["pc10"]],col="red")
-cor(spss_data_loadings_pca_varimax[["pc10"]],spss_data_loadings_pca_unrotated[["pc10"]])
-cor(spss_data_loadings_pca_varimax[["pc5"]],spss_data_loadings_pca_unrotated[["pc5"]])
-
-plot(spss_data_loadings_pca_unrotated$pc1,unclass(pca_SST_t_mode$loadings)[,1])
-cor(spss_data_loadings_pca_unrotated$pc1,unclass(pca_SST_t_mode$loadings)[,1])
-
-plot(pca_IDRISI_loadings$CMP.1,unclass(pca_SST_t_mode$loadings)[,1])
-cor(pca_IDRISI_loadings$CMP.1,unclass(pca_SST_t_mode$loadings)[,1])
-
-pca_SST_t_mode_varimax 
-
-head(principal_df_varimax)
-plot(principal_df_varimax[["PC1"]],type="l")
-lines(principal_df_unrotated[["PC1"]],col="red")
-lines(spss_data_loadings_pca_varimax[["pc1"]],col="blue")
-
-plot(principal_s_mode_df_unrotated[["PC1"]],col="red",type="l")
-lines(principal_s_mode_df_varimax[["PC1"]],type="l",col="darkgreen")
-
-### Comparison between SPSS and R, T mode unrotated!!
-plot(principal_t_mode_df_unrotated[["PC1"]],col="red",type="l")
-lines(principal_t_mode_df_varimax[["PC1"]],type="l",col="darkgreen")
-lines(spss_data_loadings_pca_unrotated[["pc1"]],col="blue")
-
-plot(principal_t_mode_df_unrotated[["PC1"]],spss_data_loadings_pca_unrotated[["pc1"]])
-cor(principal_t_mode_df_unrotated[["PC1"]],spss_data_loadings_pca_unrotated[["pc1"]])
-cor(principal_t_mode_df_unrotated[["PC2"]],spss_data_loadings_pca_unrotated[["pc2"]])
-cor(principal_t_mode_df_unrotated[["PC3"]],spss_data_loadings_pca_unrotated[["pc3"]])
-
-plot(principal_t_mode_df_varimax[["PC1"]],spss_data_loadings_pca_varimax[["pc1"]])
-cor(principal_t_mode_df_varimax[["PC1"]],spss_data_loadings_pca_varimax[["pc1"]])
-cor(principal_t_mode_df_varimax[["PC2"]],spss_data_loadings_pca_varimax[["pc2"]])
-cor(principal_t_mode_df_varimax[["PC3"]],spss_data_loadings_pca_varimax[["pc3"]])
-cor(principal_t_mode_df_varimax[["PC4"]],spss_data_loadings_pca_varimax[["pc4"]])
-
 ####### Comparison between EOT and rotation...
 #ok now we should do this for different truncation...if one can show that the corr
 #increases when the truncation decreases (more pc) then we will be ok...
 
-no_component <- 10
-dim(A)
-rotation_opt <- "none"
+#Make this a function...
 
+#no_component <- 10
+data_matrix <- A # data matrix before cross product
+cross_matrix <- cAt #matrix used in the PCA
+rotation_opt <- "none" #rotation used in PCA
+fig_opt <- TRUE #gengerate figures?
+out_suffix
 #debug(run_pca_fun)
+ref_data <- eot_s7_df[,-1]
 #test <- run_pca_fun(A,mode="T",rotation_opt=rotation_opt,matrix_val=cAt,npc=no_component,loadings=TRUE,scores_opt=TRUE) 
-
-
 list_no_component <- c(10,20,30,40,50,60,70,80,90,100)
+n_cores <- 4
 
-list_pca <- vector("list",length=length(list_no_component))
-l_loadings <- vector("list",length=length(list_no_component))
-for(i in 1:length(list_no_component)){
-  no_component <- list_no_component[i]
-  list_pca[[i]] <- run_pca_fun(A,mode="T",rotation_opt=rotation_opt,
-                               matrix_val=cAt,npc=no_component,
-                               loadings=TRUE,scores_opt=TRUE) 
-  l_loadings[[i]] <- list_pca[[i]]$loadings
+debug(comparison_pca_eot_fun)
+comp_pca_eot_obj <- comparison_pca_eot_fun(list_no_component,data_matrix,rotation_opt,
+                                           fig_opt,n_cores,out_suffix)
   
-  cor_df <- cor_series_fun(eot_s7_df[,-1],l_loadings[[i]],fig=F,out_suffix)
-  
-}
 
+
+
+
+#get
+
+
+##
 l_loadings <- lapply(1:length(list_pca),function(i){list_pca[[i]]$loadings})
 
 #diff could also be due to spatial average of 7 in EOT
 #make a function for comparison...
 
-#Also compare to PCA...
-eot_s7_df[,-1]
-debug(cor_series_fun)
-cor_df <- cor_series_fun(eot_s7_df[,-1],l_loadings[[1]],fig=F,out_suffix)
-  
-
-
-
-
-
-
-
-
-
-cor(eot_s7_df$eot_1,principal_s_mode_df_unrotated[["PC1"]])
-
-
-cor(eot_s7_df$eot_1,principal_s_mode_df_varimax[["PC1"]])
-
-cor(eot_s7_df$eot_2,principal_s_mode_df_unrotated[["PC2"]])
-cor(eot_s7_df$eot_2,principal_s_mode_df_varimax[["PC2"]])
-
-cor(eot_s7_df$eot_3,principal_s_mode_df_unrotated[["PC3"]])
-cor(eot_s7_df$eot_3,principal_s_mode_df_varimax[["PC3"]])
-
-cor(eot_s7_df$eot_4,principal_s_mode_df_unrotated[["PC4"]])
-cor(eot_s7_df$eot_4,principal_s_mode_df_varimax[["PC4"]])
-
-cor(eot_s7_df$eot_5,principal_s_mode_df_varimax[["PC5"]])
-cor(eot_s7_df$eot_5,principal_s_mode_df_varimax[["PC5"]])
-
-#function perform correlation as a function
-
-lines(spss_data_loadings_pca_varimax[["pc1"]],col="blue")
-plot(principal_s_mode_df_unrotated[["PC1"]],col="red",type="l")
-
-plot(spss_data_loadings_pca_varimax[["pc10"]],type="l")
-lines(spss_data_loadings_pca_unrotated[["pc10"]],col="red")
 
 #################################################################
 ########################## END OF SCRIPT #########################
