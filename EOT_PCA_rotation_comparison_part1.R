@@ -60,12 +60,9 @@ source(infile1_function)
 
 #inDir <- "J:/Benoit/Data/MEOT_analyses_02202015" #IDRISI 690-2 computer
 inDir <- "/home/parmentier/Data/MEOT12272012/Papers_writing_MEOT/MEOT_analyses_02202015" #Atlas
-#inDir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_analyses_02202015" #bpy50
+inDir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_analyses_02202015" #bpy50
 SST_dir <- "SST_1982_2007"
-#eot_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/workdir_terrset_08282015/anom_sst_1982_2007/components"
-eot_dir <- "/home/parmentier/Data/MEOT12272012/Papers_writing_MEOT/MEOT_analyses_02202015/workdir_terrset_08282015/anom_sst_1982_2007/components"
-
-
+eot_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/workdir_terrset_08282015/anom_sst_1982_2007/components"
 mask_fname <- "mask_rgf_1_1.tif"
 eot_fname1 <- "eot_std_s7_test__EOT_Center_Std.avl"
 out_suffix <-"_eot_pca_07022015"
@@ -447,6 +444,79 @@ comp_pca_eot_s_unrotated_obj <- comparison_pca_eot_fun(list_no_component,data_ma
 #diff could also be due to spatial average of 7 in EOT
 #make a function for comparison...
 
+### COMPARING S-MODE WITH TRANSPOSE FOR EFFICIENCY
+
+### DO PCA WITH SST_df: T-mode cross product from a standardized dataset...(i.e. correlation matrix)
+
+X_df <- SST_df[15000:16200,]
+X <-  X_df[1:(ncol(SST_df)-2)] #drop s1 and s2 which contain coordinates
+dim(X) #n*c or 1201*312
+
+
+Xtr<-t(X)
+dim(Xtr)# 312 *1201 rows*columns
+Xts<-scale(Xtr) #center time series...(observations/time profiles or pixels in images)
+dim(Xts) #
+#lapply(1:sd(Xts[,1])
+
+Xs<-t(Xts) #transpose back
+cXs<-Xts%*%Xs #get cross product matrix wihtout centering or scaling in the var dimensions
+#cXs<-cXs/nrow(cXs)#??, should reall be ncol!!! because we transposed this: 1201
+cXs<-cXs/(ncol(Xts)-1)#??, should reall be ncol!!! because we transposed this: 1201
+
+Exs<-eigen(cXs) #cross product S-mode
+diag(cXs)
+sum(diag(cXs))#1201*312
+sum(Exs$values)
+
+cXns <- Xs%*%Xts #get cross product matrix wihtout centering or scaling in the var dimensions
+cXns <- cXns/(nrow(Xts)-1)
+dim(cXns)
+Exns<-eigen(cXns) #cross product S-mode
+sum(diag(cXns))
+sum(Exns$values)
+
+plot(Exns$vectors[1,],Exs$vectors[,1])
+plot(Exns$values[1:312],Exs$values)
+cor(Exns$values[1:312],Exs$values)
+(Exns$values[1:312]/Exs$values)
+(Exns$values[1:312]/Exs$values)
+
+dim(Exns$vectors) #1201*1201
+dim(Exs$vectors)  #312*312
+
+#Get the scores by multiplying the data matrix by the eigenvectors...
+pc_scores_exns <- Xts%*%Exns$vectors # to obtain the scores, multiply the eigenvector matrix by the data matrix
+pc_scores_exs <- Xs%*%Exs$vectors # to
+sd(pc_scores_exns[,1])
+Exns$values[1]
+sd(Xts[,1])
+sqrt(Exns$values[1]/1201)
+sqrt(Exns$values[1])
+
+Es_std <- Es$vectors %*% diag(sqrt(Es$values)) ##standardizing the eigenvectors...(it is already centered)
+
+
+At <- scale(A) #center and reduce using sd and mean, T mode standardized,also makes it a matrix?
+sd(At[,2]) #this must be equal to 1 since At is standardized by columns
+mean(At[,2]) #this must be equal to 0 since At is standardized by columns
+names_var<-paste("t",1:ncol(At),sep="_") #Rename columns 
+colnames(At)<-names_var
+#perform PCA with matrix operation...
+cAt<-t(At)%*%At #T mode!! --> (c*n)by(n*c) should get c*c matrix or 312*312 
+diag(cAt) #equal 1 since it is a correlation, only if divided by n-1!!!
+cAt<-cAt/(nrow(At)-1)
+diag(cAt)
+#cAt<-cAt/nrow(At) #reduce by number of row...!!! THIS IS NOT NECESSARY SINCE At has been already based on standardized??
+#note that cAt is standardized and has been divided by n, so it is equivalent to a correlation matrix
+Et<-eigen(cAt) #this creates a list of two objects
+Et$vectors #312*312, eigenvectors...
+Et$values #1*312, eigenvalues...
+
+pc_scores <- At%*%Et$vectors # to obtain the scores, multiply the eigenvector matrix by the data matrix
+PC_scores <- as.matrix(A)%*%Et$vectors # to
+
+sd(PC_scores[,1])
 
 #################################################################
 ########################## END OF SCRIPT #########################
