@@ -234,6 +234,15 @@ var(Et$vectors)[1]
 var(Et$vectors)[2]
 var(Et$vectors)[3]
 
+mean(PC_scores[,1])
+sd(PC_scores[,1])
+#The regression weights are found from the inverse of the correlation matrix times the component loadings. 
+#This has the result that the component scores are standard scores (mean=0, sd = 1) of the standardized 
+#input.
+mean(pc_t_principal_scores[,1]) # mean of 0
+sd(pc_t_principal_scores[,1])  # sd of 1
+#This has been standardize!!! Principal standardizes the values!!
+
 pc_scores1 <- At%*%Et$vectors # to
 pc_scores2 <- as.matrix(A)%*%Et$vectors # to
 plot(pc_scores1-pc_scores2)
@@ -253,7 +262,7 @@ plot(pc_t_principal_scores1[,1]-pc_t_principal_scores2[,1])
 cor(pc_t_principal_scores1[,1],pc_scores[,1])
 plot(pc_t_principal_scores1[,1],pc_scores[,1])
 
-plot(principal_t_mode_df_unrotated[,1],Et$vectors[,1])
+plot(principal_t_mode_df_unrotated[,1],Et$vectors[,1]) #ok eigenvectors are the same but not the scores..
 cor(principal_t_mode_df_unrotated[,1],Et$vectors[,1])# ok correlation of 1!!
 
 diff <- principal_t_mode_df_unrotated[,1] - Et$vectors[,1]
@@ -261,38 +270,15 @@ sum(diff)
 (principal_t_mode_df_unrotated[,1])
 mean(Et$vectors[,1])
 
+cor(pc_t_principal_scores1[,1],pc_scores[,1])
+plot(pc_t_principal_scores1[,1],pc_scores[,1])
 
-cor(PC_scores[,1],pca_scores[,1]) 
-plot(PC_scores[,1],pca_scores[,1]) 
-PC_scores[1:10,1]/pca_scores[1:10,1]
+pc_scores[1:10,1]/pc_t_principal_scores1[1:10,1]
 sqrt(Et$values[1])
-(PC_scores[1:10,1]/sqrt(Et$values[1]))/pca_scores[1:10,1]
-plot(PC_scores[,1]/sqrt(Et$values[1]),pca_scores[,1]) 
+sd(pc_scores[,1]/sqrt(Et$values[1]))
+pc_t_principal_scores1[1:10,1]
+plot(pc_scores[,1]/sqrt(Et$values[1]),pc_t_principal_scores1[,1]) 
 
-mean(PC_scores[,1])
-sd(PC_scores[,1])
-#The regression weights are found from the inverse of the correlation matrix times the component loadings. 
-#This has the result that the component scores are standard scores (mean=0, sd = 1) of the standardized 
-#input.
-mean(pc_t_principal_scores[,1]) # mean of 0
-sd(pc_t_principal_scores[,1])  # sd of 1
-#This has been standardize!!! Principal standardizes the values!!
-
-PC_scores <- At%*%Et$vectors # to
-PC_scores <- as.matrix(A)%*%Et$vectors # to
-mean(PC_scores[,1])
-sd(PC_scores[,1])
-var(PC_scores[,1])
-
-cor(PC_scores[,1],pca_scores[,1]) 
-plot(PC_scores[,1],pca_scores[,1]) 
-PC_scores[1:10,1]/pca_scores[1:10,1]
-sqrt(Et$values[1])
-(PC_scores[1:10,1]/sqrt(Et$values[1]))/pca_scores[1:10,1]
-plot(PC_scores[,1]/sqrt(Et$values[1]),pca_scores[,1]) 
-
-mean(pca_scores[,1]) #This has been standardize!!! Principal standardizes the values!!
-sd(pca_scores[,1])
 
 ####################################################################
 ### NOW DO PCA WITH S-mode
@@ -325,27 +311,19 @@ sum(Es$value)
 sum(diag(cAs)) #sum of eigenvalue is equal to the number of variable...
 sum(pca_SST_s_mode_unrotated$value)
 
-##Cross product PCA T mode
-#pca_SST<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-#pca_SST_s_mode<-principal(r=cAs, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-#unclass(pca_SST_s_mode$loadings) # extract the matrix of ??
-
-sum(Es$value)
-sum(diag(cAs)) #sum of eigenvalue is equal to the number of variable...
-#sum(pca_SST_s_mode$value)
-
 #### PART 2: Assessing and comparing all PCA methods
 
 ###### CREATE SCORES IMAGES USING PREDICTED SCORES FROM PRINCIPAL
-pca_scores <- predict(pca_SST_t_mode,A)  #generate scores from original matrix and object
+pca_scores <- predict(pca_SST_s_mode_unrotated,A)  #generate scores from original matrix and object
 pca_scores_spdf<-cbind(as.data.frame(pca_scores),SST_xy) #add coordinates
 coordinates(pca_scores_spdf)<-pca_scores_spdf[,c("s1","s2")] #promote to spdf
 
 #Now generate raster images...
-pca_scores_lf<-pca_to_raster_fun(pca_scores_spdf,SST1_m,-9999,out_suffix)
+pca_scores_lf<-pca_to_raster_fun(pca_scores_spdf,SST1_m,-9999,out_suffix) #add a mask image??
 
 pca_SST_s<-stack(pca_scores_lf)
 NAvalue(pca_SST_s)<- -9999
+plot(pca_SST_s,1:4)
 #plot(subset(pca_IDRISI_s,1))
 
 ####### Comparison between EOT and rotation...
