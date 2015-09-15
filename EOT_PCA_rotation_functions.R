@@ -6,7 +6,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 07/02/2015 
-#DATE MODIFIED: 09/10/2015
+#DATE MODIFIED: 09/15/2015
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -47,7 +47,7 @@ cv_test_fun <- function(x,y) {
 }
 
 
-pca_to_raster_fun<-function(pc_spdf,ref_raster,NA_val,out_prefix){
+pca_to_raster_fun<-function(pc_spdf,ref_raster,NA_val,out_suffix){
   #Input arguments:
   #pc_spdf: spdf with scores components and
   #         must include x,y in the last 2 columns
@@ -59,7 +59,7 @@ pca_to_raster_fun<-function(pc_spdf,ref_raster,NA_val,out_prefix){
   for (k in 1:npc){
     pc_scores<-pc_spdf[,k] #vector containing scores for components k
     pc_name<-names(pc_spdf)[k] #name of the current component
-    raster_name<-paste("pc_component_",k,"_",out_prefix,".rst",sep="")
+    raster_name<-paste("pc_component_",k,"_",out_suffix,".rst",sep="")
     
     if (NA_val=="NA"){
       pc_lag<-rasterize(pc_scores,ref_raster,pc_name,fun=min,overwrite=TRUE,
@@ -67,8 +67,9 @@ pca_to_raster_fun<-function(pc_spdf,ref_raster,NA_val,out_prefix){
     }
     #Use provided NA value for the background
     if (NA_val!="NA"){
-      pc_lag<-rasterize(pc_scores,ref_raster,pc_name,background=NA_val,fun=min,overwrite=TRUE,
+      pc_lag <- rasterize(pc_scores,ref_raster,pc_name,background=NA_val,fun=min,overwrite=TRUE,
                         filename=raster_name)
+      NAvalue(pc_lag) <- NA_val
     }
     pc_scores_lf[[k]]<-raster_name
   } 
