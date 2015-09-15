@@ -6,7 +6,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 07/02/2015 
-#DATE MODIFIED: 09/10/2015
+#DATE MODIFIED: 09/15/2015
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -350,7 +350,9 @@ pca_t_mode_scores_scores_lf <- pca_to_raster_fun(pca_t_mode_scores_spdf,SST1_m,N
 pca_SST_t<-stack(pca_t_mode_scores_scores_lf)
 
 pca_SST_s<-stack(pca_scores_lf)
-#NAvalue(pca_SST_s)<- -9999
+NAvalue(pca_SST_s)<- -9999
+NAvalue(pca_SST_t)<- -9999
+
 plot(pca_SST_s,1:4)
 plot(pca_SST_t,1:4)
 
