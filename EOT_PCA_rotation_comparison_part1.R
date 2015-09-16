@@ -60,9 +60,12 @@ source(infile1_function)
 
 #inDir <- "J:/Benoit/Data/MEOT_analyses_02202015" #IDRISI 690-2 computer
 inDir <- "/home/parmentier/Data/MEOT12272012/Papers_writing_MEOT/MEOT_analyses_02202015" #Atlas
-inDir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_analyses_02202015" #bpy50
+#inDir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_analyses_02202015" #bpy50
 SST_dir <- "SST_1982_2007"
-eot_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/workdir_terrset_08282015/anom_sst_1982_2007/components"
+#eot_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/workdir_terrset_08282015/anom_sst_1982_2007/components"
+eot_dir <- "/home/parmentier/Data/MEOT12272012/Papers_writing_MEOT/MEOT_analyses_02202015/workdir_terrset_08282015/anom_sst_1982_2007/components"
+
+
 mask_fname <- "mask_rgf_1_1.tif"
 eot_fname1 <- "eot_std_s7_test__EOT_Center_Std.avl"
 out_suffix <-"_eot_pca_07022015"
