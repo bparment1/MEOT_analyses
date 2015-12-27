@@ -6,7 +6,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 07/02/2015 
-#DATE MODIFIED: 09/15/2015
+#DATE MODIFIED: 12/27/2015
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -33,6 +33,11 @@ library(xts)
 #################################################
 ###### Functions  used in the script  ##########
 
+#[1] "comparison_pca_eot_fun" 
+#[2] "cor_series_fun"   
+#[3] "cv_test_fun"           
+#[4] "pca_to_raster_fun"      
+#[5] "run_pca_fun"           
 
 cv_test_fun <- function(x,y) {
   #modified from:
@@ -175,6 +180,7 @@ cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
   
 }
 
+#This is the main function used in the comparison between EOT and PCA with rotation
 comparison_pca_eot_fun<- function(list_no_component,data_matrix,rotation_opt,fig_opt,n_cores,out_suffix){
   ####
   ##  
