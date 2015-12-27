@@ -6,7 +6,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 07/02/2015 
-#DATE MODIFIED: 09/15/2015
+#DATE MODIFIED: 12/27/2015
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -52,20 +52,21 @@ load_obj <- function(f){
   env[[nm]]
 }
 
-infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT","EOT_PCA_rotation_functions_09102015.R")
+infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
+                              "EOT_PCA_rotation_functions_09152015.R")
 source(infile1_function)
 
 #############################################
 ######## Parameters and arguments  ########
 
 #inDir <- "J:/Benoit/Data/MEOT_analyses_02202015" #IDRISI 690-2 computer
-inDir <- "/home/parmentier/Data/MEOT12272012/Papers_writing_MEOT/MEOT_analyses_02202015" #Atlas
+#inDir <- "/home/parmentier/Data/MEOT12272012/Papers_writing_MEOT/MEOT_analyses_02202015" #Atlas Server
 inDir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_analyses_02202015" #bpy50
 SST_dir <- "SST_1982_2007"
 eot_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/workdir_terrset_08282015/anom_sst_1982_2007/components"
 mask_fname <- "mask_rgf_1_1.tif"
 eot_fname1 <- "eot_std_s7_test__EOT_Center_Std.avl"
-out_suffix <-"_eot_pca_07022015"
+out_suffix <-"_eot_pca_12272015"
 CRS_WGS84 <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #Station coords WGS84 # CONST 2
 
 lf_sst <- list.files(path=file.path(inDir,SST_dir),pattern=".rst$",full.names=T)
@@ -360,7 +361,7 @@ plot(r_t_mode_pca,1:4)
 
 pca_scores[1,]
 
-lapply(cor(pca_scores[,1],A[,1])
+lapply(cor(pca_scores[,1],A[,1]))
 
 #plot(subset(pca_IDRISI_s,1))
 
@@ -427,7 +428,7 @@ data_matrix <- A # data matrix before cross product
 cross_matrix <- cAs #matrix used in the PCA
 rotation_opt <- "none" #rotation used in PCA
 fig_opt <- FALSE #gengerate figures?
-out_suffix
+out_suffix_str <- paste("unrotated_comp_",out_suffix,sep="")
 #debug(run_pca_fun)
 ref_data <- eot_s7_df[,-1]
 #test <- run_pca_fun(A,mode="T",rotation_opt=rotation_opt,matrix_val=cAt,npc=no_component,loadings=TRUE,scores_opt=TRUE) 
@@ -440,9 +441,74 @@ n_cores <- 4
 comp_pca_eot_s_unrotated_obj <- comparison_pca_eot_fun(list_no_component,data_matrix,rotation_opt,
                                            fig_opt,n_cores,out_suffix)
   
+### Now compare with rotation
+#no_component <- 10
+data_matrix <- A # data matrix before cross product
+cross_matrix <- cAs #matrix used in the PCA
+rotation_opt <- "varimax" #rotation used in PCA
+fig_opt <- FALSE #gengerate figures?
+out_suffix_str <- paste("varimax_comp_",out_suffix,sep="")
+#debug(run_pca_fun)
+ref_data <- eot_s7_df[,-1]
+#test <- run_pca_fun(A,mode="T",rotation_opt=rotation_opt,matrix_val=cAt,npc=no_component,loadings=TRUE,scores_opt=TRUE) 
+list_no_component <- c(10,20,30,40,50,60,70,80,90,100)
+n_cores <- 4
+
+#debug(comparison_pca_eot_fun)
+comp_pca_eot_s_varimax_rotated_obj <- comparison_pca_eot_fun(list_no_component,data_matrix,rotation_opt,
+                                                       fig_opt,n_cores,out_suffix)
 
 #diff could also be due to spatial average of 7 in EOT
 #make a function for comparison...
+## Need to extract diagonal values from df and compare one to one...
+
+## for truncation of 10
+diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[1]]))
+diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[1]]))
+
+diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[2]]))
+diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[2]]))
+
+diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[3]]))
+diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[3]]))
+
+diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[4]]))
+diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[4]]))
+
+diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[5]]))
+diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[5]]))
+
+diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[6]]))
+diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[6]]))
+
+list_diag_comp_tmp <- vector("list",length=length(list_no_component))
+for(i in 1:length(list_no_component)){
+  diag_comp1 <- diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[i]]))
+  diag_comp2 <- diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[i]]))
+  diag_comp_tmp <- rbind(diag_comp1,diag_comp2)
+  list_diag_comp_tmp[[i]] <- diag_comp1
+}
+
+test <- do.call(rbind,list_diag_comp_tmp)
+diag_comp2
+
+#show that the correlation between pca rotated 1 and EOT 1 decreases as the number of pc components
+#increases
+plot(abs(as.numeric(test[,1])),ylim=c(-1,1))
+abline(h=abs(as.numeric(diag_comp2[1])))
+#show that the correlation between pca 10 rotated and EOT 10 decreases as the number of pc components
+#increases
+plot(abs(as.numeric(test[,10])),ylim=c(-1,1))
+abline(h=abs(as.numeric(diag_comp2[10])))
+
+#show that the correlation between pca 10 rotated and EOT 10 decreases as the number of pc components
+#increases
+plot(abs(as.numeric(test[,5])),ylim=c(-1,1))
+abline(h=abs(as.numeric(diag_comp2[5])))
+
+#This suggests that there is no clear correspondance between MEOT and PCA with rotation
+#Redo analyses with eot and aggregation 1 (except if PCA is done with aggregation of one)
+#
 
 ### COMPARING S-MODE WITH TRANSPOSE FOR EFFICIENCY
 
