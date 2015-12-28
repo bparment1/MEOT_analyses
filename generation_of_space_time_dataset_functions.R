@@ -5,8 +5,9 @@
 #Parent code to run functions is found in "generation_of_space_time_dataset_09122013v5.R"
 #AUTHOR:Benoit Parmentier                                             
 #DATE OF CREATION: 08/25/2013
-#DATE OF MODIFICATION: 01/10/2014
-#PROJECT: Clark Labs, MEOT, time series                                  
+#DATE OF MODIFICATION: 12/28/2015
+#PROJECT: Clark Labs, MEOT, time series  
+#
 ###################################################################################################
 
 ## The current script contains 11 functions:
@@ -145,7 +146,7 @@ adding_sptatial_structure  <-function(j,list_param){
   
   #Generate spatial pattern 3: trend in x    
   type_spatialstructure[3] <-"trend_x"
-  u <-xFromCol(r,colnr=1:col)
+  u <-xFromCol(r,col=1:col)
   a<- 2 #slope
   b<- -1 #intercept
   ux <-  a*u + b  
@@ -158,7 +159,7 @@ adding_sptatial_structure  <-function(j,list_param){
   
   #Generate spatial pattern 5:     
   type_spatialstructure[5] <- "periodic_x1"
-  u <- xFromCol(r,colnr=1:col)
+  u <- xFromCol(r,col=1:col)
   a<- 2 #amplitude in this case
   b<- 0
   T<- col
@@ -178,7 +179,7 @@ adding_sptatial_structure  <-function(j,list_param){
   
   #Generate spatial pattern 8:     
   type_spatialstructure[8] <- "periodic_x2"
-  u <- xFromCol(r,colnr=1:col)
+  u <- xFromCol(r,col=1:col)
   a<- 2 #amplitude in this case
   b<- 0
   T<- round(col/2)
@@ -197,7 +198,7 @@ adding_sptatial_structure  <-function(j,list_param){
     
   #Generate spatial pattern 11:     
   type_spatialstructure[11] <- "periodic_x3"
-  u <- xFromCol(r,colnr=1:col)
+  u <- xFromCol(r,col=1:col)
   a<- 2 #amplitude in this case, should be an argument of the function
   b<- 0
   T<- round(col/3)
@@ -227,7 +228,7 @@ adding_sptatial_structure  <-function(j,list_param){
   #Prepare stack to return object
   r_spat <-stack(r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15)
   #names(r_spat) <- type_Spatialstructure
-  layerNames(r_spat) <- type_spatialstructure
+  names(r_spat) <- type_spatialstructure
   
   #Write out spatial patterns
   if(file_format==".rst"){
@@ -488,7 +489,7 @@ generate_moving_space_time_structure <-function(list_param){
     r<-raster(nrows=row, ncols=col,crs=proj_str,xmn=0, xmx = col, ymn=0, ymx=row)
     r <- setValues(r,pix_values)
     
-    u <- xFromCol(r,colnr=1:col)
+    u <- xFromCol(r,col=1:col)
     a<- 2 #amplitude in this case
     b<- 0
     T<- round(col)
@@ -831,7 +832,7 @@ write_out_raster_fun <-function(r_stack,out_suffix,out_dir,NA_flag_val=-9999,fil
   list_raster_name <- vector("list",length=nlayers(r_stack))
   for(i in 1:nlayers(r_stack)){
     r<-subset(r_stack,i)
-    raster_name <- paste(layerNames(r_stack)[i],"_",out_suffix,file_format,sep="")
+    raster_name <- paste(names(r_stack)[i],"_",out_suffix,file_format,sep="")
     writeRaster(r, NAflag=NA_flag_val,filename=file.path(out_dir,raster_name)
                 ,bylayer=FALSE,bandorder="BSQ",overwrite=TRUE)
     list_raster_name[[i]] <- file.path(out_dir,raster_name) 
