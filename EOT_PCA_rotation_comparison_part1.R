@@ -6,7 +6,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED: 07/02/2015 
-#DATE MODIFIED: 12/27/2015
+#DATE MODIFIED: 01/09/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -80,12 +80,12 @@ infile3<-"MEOT_MSSA_Telcon_indices_12112012.xlsx"                        #LST da
 #infile4<-"mask_rgf_1_1.rst"
 infile_pca_IDRISI <-"pca_IDRISI_03302013_T-Mode_DIF.xlsx"
 
-infile_pca_spss <- "spss_pca_output_08082015.xlsx"
+#infile_pca_spss <- "spss_pca_output_08082015.xlsx"
 idrisi_dir <- "~/Google Drive/Papers_writing_MEOT/MEOT_analyses_02202015/workdir_terrset_08282015/anom_sst_1982_2007/components"
-infile_idrisi_pca_s_mode <- "idrisi_pca_s_mode_PCA_Center_Std_S-Mode_DIF.xls"
-infile_idrisi_pca_t_mode <- "idrisi_pca_t_mode_PCA_Center_Std_T-Mode_DIF.xls"
+#infile_idrisi_pca_s_mode <- "idrisi_pca_s_mode_PCA_Center_Std_S-Mode_DIF.xls"
+#infile_idrisi_pca_t_mode <- "idrisi_pca_t_mode_PCA_Center_Std_T-Mode_DIF.xls"
 
-infile_s_mode_pca  <- "pca_IDRISI_04152013_S-Mode_DIF.xlsx"
+#infile_s_mode_pca  <- "pca_IDRISI_04152013_S-Mode_DIF.xlsx"
 npc <- 10 # number of pca components to produce...put this at the beginning of the script...
 lag_window <-13 #not in use here...
 telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
@@ -164,7 +164,7 @@ SST1_m <- subset(r_sst,1)
 plot(SST1_m,col=matlab.like(255))  
 
 ##############################################################
-#### STEP 2: get data ready for PCA by lagging data frame...
+#### STEP 2: get data ready for PCA in data frame...
 
 SST_sgdf<-as(r_sst,"SpatialGridDataFrame")
 #SST_df<-as.data.frame(SST_rast) #drop the coordinates x and y
@@ -205,7 +205,6 @@ pc_scores <- At%*%Et$vectors # to obtain the scores, multiply the eigenvector ma
 PC_scores <- as.matrix(A)%*%Et$vectors # to
 
 sd(PC_scores[,1])
-
 
 ###COMPARING SCORES FROM FROM "eigen" and principal function
 ## Note that the scores are equal only if the square root of eigenvalues has been used to reduce (normalize) the Eigen Vectors!!!
@@ -253,14 +252,12 @@ pc_scores2 <- as.matrix(A)%*%Et$vectors # to
 loadings_Et1 <- unlist(lapply(1:ncol(pc_scores1),FUN=function(i){cor(pc_scores1[,1],At[,i])}))
 loadings_Et2 <- unlist(lapply(1:ncol(pc_scores1),FUN=function(i){cor(pc_scores1[,2],At[,i])}))
 
-
 plot(pc_scores1-pc_scores2)
 sd(pc_scores1[,1])
 sd(pc_scores1[,2])
 sd(A[,1])
 sd(pc_scores2[,1]) #this is not standardized!!
 sd(pc_scores2[,2])
-
 
 #To obtain de scores from the principal object, use predict with the input matrix?
 class(pca_SST_t_mode_unrotated)
@@ -287,7 +284,6 @@ sqrt(Et$values[1])
 sd(pc_scores[,1]/sqrt(Et$values[1]))
 pc_t_principal_scores1[1:10,1]
 plot(pc_scores[,1]/sqrt(Et$values[1]),pc_t_principal_scores1[,1]) 
-
 
 ####################################################################
 ### NOW DO PCA WITH S-mode
@@ -363,65 +359,13 @@ pca_scores[1,]
 
 lapply(cor(pca_scores[,1],A[,1]))
 
-#plot(subset(pca_IDRISI_s,1))
+############# PART 2: COMPARISON BETWEEN EOT AND PCA WITH AND WITHOUT ROTATION ###################
 
-idrisi_dir <- "~/Google Drive/Papers_writing_MEOT/MEOT_analyses_02202015/workdir_terrset_08282015/anom_sst_1982_2007/components"
-infile_idrisi_pca_s_mode <- "idrisi_pca_s_mode_PCA_Center_Std_S-Mode_DIF.xls"
-infile_idrisi_pca_t_mode <- "idrisi_pca_t_mode_PCA_Center_Std_T-Mode_DIF.xls"
-#infile_idrisi1_pca_t_mode <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_analyses_02202015","pca_IDRISI_03302013_T-Mode_DIF.xlsx")
-#infile_idrisi1_pca_s_mode <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_analyses_02202015","pca_IDRISI_03302013_S-Mode_DIF.xlsx")
-
-#idrisi_s_mode_loadings1 <- read.xls(infile_idrisi1_pca_s_mode, sheet = "loadings", header = TRUE)
-#idrisi_s_mode_loadings1 <- read.xls(infile_idrisi1_pca_s_mode, sheet = "loadings", header = TRUE)
-
-lf_s_mode_idrisi <- mixedsort(list.files(path=idrisi_dir,
-                                         pattern="idrisi_pca_s_mode_PCA_Center_Std_S-Mode_EigenVec_.*.rst$",
-                                         full.names=T))
-r_s_eig <- stack(lf_s_mode_idrisi)
-lf_s_mode_idrisi <- mixedsort(list.files(path=idrisi_dir,
-                                         pattern="idrisi_pca_s_mode_PCA_Center_Std_S-Mode_CompLoadingImg_.*.rst$",
-                                         full.names=T))
-r_s_loadings <- stack(lf_s_mode_idrisi)
-
-plot(r_s_mode_pca,1:4)
-plot(r_t_mode_pca,1:4)
-plot(r_s_eig,1:4)
-plot(r_s_loadings,1:4)
-
-idrisi_s_mode_loadings <- read.xls (file.path(idrisi_dir,infile_idrisi_pca_s_mode), sheet = "loadings", header = TRUE)
-idrisi_t_mode_loadings <- read.xls (file.path(idrisi_dir,infile_idrisi_pca_t_mode), sheet = "loadings", header = TRUE)
-
-plot(idrisi_s_mode_loadings[,2],Es$vectors[,1])
-plot(idrisi_s_mode_loadings[,3],Es$vectors[,2])
-plot(idrisi_s_mode_loadings[,4],Es$vectors[,3])
-
-plot(idrisi_t_mode_loadings[,2],Et$vectors[,1])
-plot(idrisi_t_mode_loadings[,3],Et$vectors[,2])
-plot(idrisi_t_mode_loadings[,4],Et$vectors[,3])
-
-plot(idrisi_t_mode_loadings[,2],loadings_Et1)
-plot(idrisi_t_mode_loadings[,3],loadings_Et2)
-#plot(idrisi_s_mode_loadings[,4],Es$vectors[,3])
-cor(idrisi_t_mode_loadings[,2],loadings_Et1)
-cor(idrisi_t_mode_loadings[,3],loadings_Et2)
-
-cor(idrisi_s_mode_loadings[,2],Es$vectors[,1])
-cor(idrisi_s_mode_loadings[,3],Es$vectors[,2])
-cor(idrisi_s_mode_loadings[,4],Es$vectors[,3])
-
-cor(idrisi_t_mode_loadings[,2],Et$vectors[,1])
-cor(idrisi_t_mode_loadings[,3],Et$vectors[,2])
-cor(idrisi_t_mode_loadings[,4],Et$vectors[,3])
-
-cor(idrisi_t_mode_loadings[,2],principal_s_mode_df_unrotated[,1])
-cor(idrisi_t_mode_loadings[,3],principal_s_mode_df_unrotated[,2])
-cor(idrisi_t_mode_loadings[,4],principal_s_mode_df_unrotated[,3])
-
-####### Comparison between EOT and rotation...
 #ok now we should do this for different truncation...if one can show that the corr
 #increases when the truncation decreases (more pc) then we will be ok...
 
-#Make this a function...
+#############
+## Step 2.1: Generate PCA S-mode with function created for 10 to 100 components, without rotation
 
 #no_component <- 10
 data_matrix <- A # data matrix before cross product
@@ -440,8 +384,9 @@ n_cores <- 4
 #debug(comparison_pca_eot_fun)
 comp_pca_eot_s_unrotated_obj <- comparison_pca_eot_fun(list_no_component,data_matrix,rotation_opt,
                                            fig_opt,n_cores,out_suffix)
-  
-### Now compare with rotation
+
+## Step 2.2: Generate PCA S-mode with function created for 10 to 100 components, with varimax rotation
+
 #no_component <- 10
 data_matrix <- A # data matrix before cross product
 cross_matrix <- cAs #matrix used in the PCA
@@ -457,6 +402,10 @@ n_cores <- 4
 #debug(comparison_pca_eot_fun)
 comp_pca_eot_s_varimax_rotated_obj <- comparison_pca_eot_fun(list_no_component,data_matrix,rotation_opt,
                                                        fig_opt,n_cores,out_suffix)
+
+
+#############
+## Step 2.3: Comparison EOT and PCA S-mode with function created for 10 to 100 components, 
 
 #diff could also be due to spatial average of 7 in EOT
 #make a function for comparison...
@@ -481,34 +430,135 @@ diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[5]]))
 diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[6]]))
 diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[6]]))
 
-list_diag_comp_tmp <- vector("list",length=length(list_no_component))
-for(i in 1:length(list_no_component)){
-  diag_comp1 <- diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[i]]))
-  diag_comp2 <- diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[i]]))
-  diag_comp_tmp <- rbind(diag_comp1,diag_comp2)
-  list_diag_comp_tmp[[i]] <- diag_comp1
+
+eot_no <- 10
+
+comparison_eot_pca_corr_with_rotation_fun(comp_eot_pca_rotated_obj=comp_pca_eot_s_varimax_rotated_obj,
+                                          cocomp_eot_pca_unrotated_obj=comp_pca_eot_s_unrotated_obj,list_no_component,
+                                          eot_no)
+comparison_eot_pca_corr_with_rotation_fun <- function(comp_eot_pca_rotated_obj,comp_eot_pca_unrotated_obj,list_no_component,eot_no){
+  
+  list_diag_comp_tmp <- vector("list",length=length(list_no_component))
+  for(i in 1:length(list_no_component)){
+    diag_comp1 <- as.numeric(diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[i]])))
+    diag_comp2 <- as.numeric(diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[i]])))
+    diag_comp_tmp <- rbind(diag_comp1,diag_comp2)
+    list_diag_comp_tmp[[i]] <- diag_comp1
+  }
+  
+  cor_table <- as.data.frame(do.call(rbind,list_diag_comp_tmp))
+  names(cor_table)<- paste("EOT",1:eot_no,sep="_")
+  #cor_table <- (do.call(rbind,list_diag_comp_tmp))
+  
+  for(i in 1:eot_no){
+
+    #show that the correlation between pca rotated 1 and EOT 1 decreases as the number of pc components
+    #increases
+    eot_name <- paste("EOT",i,sep="_")
+    
+    res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
+    fig_name1 <- paste("Figure_cor_eot_",i,"_pc_",i,"_","comparison_with_varimax_and_truncation_",out_suffix,".png",sep="")
+    png(filename= fig_name1,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+    
+    ## Without absolute values
+    cor_table$truncation_var <- list_no_component
+    plot(((cor_table[[eot_name]]))~truncation_var,ylim=c(-1,1),type="b",
+         ylab="correlation",xlab="truncation component",data=cor_table)
+    abline(h=abs(as.numeric(diag_comp2[i])),lty="dashed") #correlation for unrotated
+    abline(h=0,lty="solid") #correlation for unrotated
+    title(paste("Correlation between PC",i, "varimax and",eot_name,"with different truncation",sep=" "))
+    dev.off()
+    
+    res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
+    fig_name2 <- paste("Figure_absolute_cor_eot_",i,"_pc_",i,"_","comparison_with_varimax_and_truncation_",out_suffix,".png",sep="")
+    png(filename= fig_name2,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+    
+    ## now using absolute values
+    plot((abs(cor_table[[eot_name]]))~truncation_var,ylim=c(-1,1),type="b",
+         ylab="correlation",xlab="truncation component",data=cor_table)
+    abline(h=abs(as.numeric(diag_comp2[i])),lty="dashed") #correlation for unrotated
+    abline(h=0,lty="solid") #correlation for unrotated
+    title(paste("Absolute Correlation between PC",i, "varimax and",eot_name,"with different truncation",sep=" "))
+    dev.off()
+    
+  }
+  ##
+  #
 }
-
-test <- do.call(rbind,list_diag_comp_tmp)
-diag_comp2
-
-#show that the correlation between pca rotated 1 and EOT 1 decreases as the number of pc components
-#increases
-plot(abs(as.numeric(test[,1])),ylim=c(-1,1))
-abline(h=abs(as.numeric(diag_comp2[1])))
-#show that the correlation between pca 10 rotated and EOT 10 decreases as the number of pc components
-#increases
-plot(abs(as.numeric(test[,10])),ylim=c(-1,1))
-abline(h=abs(as.numeric(diag_comp2[10])))
-
-#show that the correlation between pca 10 rotated and EOT 10 decreases as the number of pc components
-#increases
-plot(abs(as.numeric(test[,5])),ylim=c(-1,1))
-abline(h=abs(as.numeric(diag_comp2[5])))
 
 #This suggests that there is no clear correspondance between MEOT and PCA with rotation
 #Redo analyses with eot and aggregation 1 (except if PCA is done with aggregation of one)
 #
+
+
+#################################################################
+########################## END OF SCRIPT #########################
+#################################################################
+
+#cAt<-A%*%At
+#Ae<-eigen(cAt)
+#principal(r, nfactors = 1, residuals = FALSE,rotate="varimax",n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
+#          impute="median",oblique.scores=TRUE,method="regression",...)
+
+##Correlation PCA T mode
+#pca_SST<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+
+#pca_SST_cor_t_mode<-principal(r=corAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
+#unclass(pca_SST_t_mode$loadings) # extract the matrix of ??
+# 
+# sum(Et$value)
+# sum(diag(cAt))
+# sum(pca_SST_t_mode$value)
+# 
+# head(unclass(pca_SST_t_mode$loadings)[,1:npc])
+# head(Et$vectors[,1:npc]) #not equal...because not standardized...
+# Estd <-  Et$vectors%*% diag(sqrt(Et$values))
+# head(Estd)
+# head(unclass(pca_SST$loadings)[,1:npc])
+# 
+# #cAt<-A%*%At
+# #Ae<-eigen(cAt)
+# #principal(r, nfactors = 1, residuals = FALSE,rotate="varimax",n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
+# #          impute="median",oblique.scores=TRUE,method="regression",...)
+# 
+# 
+# ##############
+# ### 
+# require(psych) 
+# data(mtcars) 
+# rawd <- mtcars[,c("am","carb","cyl","disp","drat","gear","hp","mpg")] #subset the original data.frame
+# 
+# ## compute acp 
+# .PC <- princomp(~am+carb+cyl+disp+drat+gear+hp+mpg, cor=TRUE, data=mtcars) 
+# pca <- principal(rawd, nfactors = 8, residuals = T, rotate="none", scores=T) 
+# 
+# ## eigenvectors of the correlation matrix of raw data 
+# eigens <- eigen(cor(rawd)) #eigen value decomposition
+# eigens$vectors #matrix of the eigenvectors, eigens is a list
+# unclass(loadings(.PC))  # component 'loadings' in princomp parlance are the eigenvectors!!!
+# 
+# ## correlation matrix between raw data and unrotated component scores 
+# ## 'loadings' in ?principal parlance and 'component matrix' in SPSS --> loadings in princomp are the eigenvectors 
+# # components scores can be obtained by multiplying the original data by the eigenvectors...
+# eigens$vectors %*% diag(sqrt(eigens$values)) ##standardizing the eigenvectors...(it is already centered)
+# cor(cbind(rawd, .PC$scores))  #loadings are the correlation between the PC scores and the origina variables
+# unclass(pca$loadings) # extract the matrix of ??
+# 
+# ## extract un-rotated scores of principal components 
+# head(scale(rawd) %*% eigens$vectors) # app, but very similar results 
+# head(.PC$scores) 
+# head(pca$scores) # scale'd, and obtained via regression on scale'd data 
+# head(factor.scores(scale(rawd), 
+#                    unclass(pca$loadings))) # same scores as from ?principal 
+# #for differeneces between ?princomp and ?principal scores 
+# #see last paragraph of Details in ?principal 
+# rm(PC_std_scores)
 
 ### COMPARING S-MODE WITH TRANSPOSE FOR EFFICIENCY
 
@@ -583,67 +633,4 @@ pc_scores <- At%*%Et$vectors # to obtain the scores, multiply the eigenvector ma
 PC_scores <- as.matrix(A)%*%Et$vectors # to
 
 sd(PC_scores[,1])
-
-#################################################################
-########################## END OF SCRIPT #########################
-#################################################################
-
-#cAt<-A%*%At
-#Ae<-eigen(cAt)
-#principal(r, nfactors = 1, residuals = FALSE,rotate="varimax",n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
-#          impute="median",oblique.scores=TRUE,method="regression",...)
-
-##Correlation PCA T mode
-#pca_SST<-principal(r=cAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-
-#pca_SST_cor_t_mode<-principal(r=corAt, nfactors = npc, residuals = FALSE, covar=TRUE,rotate = "none")
-#unclass(pca_SST_t_mode$loadings) # extract the matrix of ??
-# 
-# sum(Et$value)
-# sum(diag(cAt))
-# sum(pca_SST_t_mode$value)
-# 
-# head(unclass(pca_SST_t_mode$loadings)[,1:npc])
-# head(Et$vectors[,1:npc]) #not equal...because not standardized...
-# Estd <-  Et$vectors%*% diag(sqrt(Et$values))
-# head(Estd)
-# head(unclass(pca_SST$loadings)[,1:npc])
-# 
-# #cAt<-A%*%At
-# #Ae<-eigen(cAt)
-# #principal(r, nfactors = 1, residuals = FALSE,rotate="varimax",n.obs=NA, covar=FALSE, scores=FALSE,missing=FALSE,
-# #          impute="median",oblique.scores=TRUE,method="regression",...)
-# 
-# 
-# ##############
-# ### 
-# require(psych) 
-# data(mtcars) 
-# rawd <- mtcars[,c("am","carb","cyl","disp","drat","gear","hp","mpg")] #subset the original data.frame
-# 
-# ## compute acp 
-# .PC <- princomp(~am+carb+cyl+disp+drat+gear+hp+mpg, cor=TRUE, data=mtcars) 
-# pca <- principal(rawd, nfactors = 8, residuals = T, rotate="none", scores=T) 
-# 
-# ## eigenvectors of the correlation matrix of raw data 
-# eigens <- eigen(cor(rawd)) #eigen value decomposition
-# eigens$vectors #matrix of the eigenvectors, eigens is a list
-# unclass(loadings(.PC))  # component 'loadings' in princomp parlance are the eigenvectors!!!
-# 
-# ## correlation matrix between raw data and unrotated component scores 
-# ## 'loadings' in ?principal parlance and 'component matrix' in SPSS --> loadings in princomp are the eigenvectors 
-# # components scores can be obtained by multiplying the original data by the eigenvectors...
-# eigens$vectors %*% diag(sqrt(eigens$values)) ##standardizing the eigenvectors...(it is already centered)
-# cor(cbind(rawd, .PC$scores))  #loadings are the correlation between the PC scores and the origina variables
-# unclass(pca$loadings) # extract the matrix of ??
-# 
-# ## extract un-rotated scores of principal components 
-# head(scale(rawd) %*% eigens$vectors) # app, but very similar results 
-# head(.PC$scores) 
-# head(pca$scores) # scale'd, and obtained via regression on scale'd data 
-# head(factor.scores(scale(rawd), 
-#                    unclass(pca$loadings))) # same scores as from ?principal 
-# #for differeneces between ?princomp and ?principal scores 
-# #see last paragraph of Details in ?principal 
-# rm(PC_std_scores)
 
