@@ -412,36 +412,59 @@ comp_pca_eot_s_varimax_rotated_obj <- comparison_pca_eot_fun(list_no_component,d
 ## Need to extract diagonal values from df and compare one to one...
 
 ## for truncation of 10
-diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[1]]))
-diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[1]]))
 
-diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[2]]))
-diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[2]]))
+test <- barplot_comparison_eot_pca(comp_eot_pca_rotated_obj=comp_pca_eot_s_varimax_rotated_obj,
+                                       comp_eot_pca_unrotated_obj=comp_pca_eot_s_unrotated_obj,list_no_component)
+  
+#debug(barplot_comparison_eot_pca)
+barplot_comparison_eot_pca <- function(comp_eot_pca_rotated_obj,
+         comp_eot_pca_unrotated_obj,list_no_component){
+  #comp_eot_pca_rotated_obj=comp_pca_eot_s_varimax_rotated_obj,
+  #comp_eot_pca_unrotated_obj=comp_pca_eot_s_unrotated_obj
+  list_cor_df <- vector("list",length=length(list_no_component))
+  for(i in 1:length(list_no_component)){
+    
+    res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
+    fig_name <- paste("Figure_barplot_cor_eot_pca_","comparison_with_varimax_and_truncation_",list_no_component[[i]],out_suffix,".png",sep="")
+    png(filename= fig_name,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+    
+    diag_rotated <- diag(as.matrix(comp_eot_pca_rotated_obj$list_cor[[i]]))
+    diag_unrotated <- diag(as.matrix(comp_eot_pca_unrotated_obj$list_cor[[i]]))
+    
+    comp_trunc1 <- as.vector(cbind(diag_rotated,diag_unrotated))
+    cor_df <- as.data.frame(data.frame(cor=comp_trunc1))
+    cor_df$type <- c(rep("r",10),rep("u",10))
+    names_components <- 1:10
+    #barplot(rbind(diag_rotated,diag_unrotated))
+    
+    barplot(rbind(as.numeric(diag_rotated),as.numeric(diag_unrotated)),main="",
+            xlab="component", col=c("darkblue","red"),ylim=c(-0.8,0.8),
+            legend = c("rotated","unrotated"), beside=TRUE,
+            names.arg=names_components)
+    title(paste(main="Correlation between EOT and PCA S mode: trunction ",list_no_component[[i]]))
+    dev.off()
+    
+    list_cor_df[[i]] <- cor_df
+  }
+  return(list_cor_df)
+}
 
-diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[3]]))
-diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[3]]))
-
-diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[4]]))
-diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[4]]))
-
-diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[5]]))
-diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[5]]))
-
-diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[6]]))
-diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[6]]))
 
 
 eot_no <- 10
 
-comparison_eot_pca_corr_with_rotation_fun(comp_eot_pca_rotated_obj=comp_pca_eot_s_varimax_rotated_obj,
-                                          cocomp_eot_pca_unrotated_obj=comp_pca_eot_s_unrotated_obj,list_no_component,
+test <- comparison_eot_pca_corr_with_rotation_fun(comp_eot_pca_rotated_obj=comp_pca_eot_s_varimax_rotated_obj,
+                                          comp_eot_pca_unrotated_obj=comp_pca_eot_s_unrotated_obj,list_no_component,
                                           eot_no)
 comparison_eot_pca_corr_with_rotation_fun <- function(comp_eot_pca_rotated_obj,comp_eot_pca_unrotated_obj,list_no_component,eot_no){
   
   list_diag_comp_tmp <- vector("list",length=length(list_no_component))
   for(i in 1:length(list_no_component)){
-    diag_comp1 <- as.numeric(diag(as.matrix(comp_pca_eot_s_varimax_rotated_obj$list_cor[[i]])))
-    diag_comp2 <- as.numeric(diag(as.matrix(comp_pca_eot_s_unrotated_obj$list_cor[[i]])))
+    diag_comp1 <- as.numeric(diag(as.matrix(comp_eot_pca_rotated_obj$list_cor[[i]])))
+    diag_comp2 <- as.numeric(diag(as.matrix(comp_eot_pca_unrotated_obj$list_cor[[i]])))
     diag_comp_tmp <- rbind(diag_comp1,diag_comp2)
     list_diag_comp_tmp[[i]] <- diag_comp1
   }
@@ -489,7 +512,7 @@ comparison_eot_pca_corr_with_rotation_fun <- function(comp_eot_pca_rotated_obj,c
     
   }
   ##
-  #
+  return(cor_table)
 }
 
 #This suggests that there is no clear correspondance between MEOT and PCA with rotation
