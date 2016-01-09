@@ -413,110 +413,19 @@ comp_pca_eot_s_varimax_rotated_obj <- comparison_pca_eot_fun(list_no_component,d
 
 ## for truncation of 10
 
-test <- barplot_comparison_eot_pca(comp_eot_pca_rotated_obj=comp_pca_eot_s_varimax_rotated_obj,
+bar_plot_obj <- barplot_comparison_eot_pca(comp_eot_pca_rotated_obj=comp_pca_eot_s_varimax_rotated_obj,
                                        comp_eot_pca_unrotated_obj=comp_pca_eot_s_unrotated_obj,list_no_component)
   
 #debug(barplot_comparison_eot_pca)
-barplot_comparison_eot_pca <- function(comp_eot_pca_rotated_obj,
-         comp_eot_pca_unrotated_obj,list_no_component){
-  #comp_eot_pca_rotated_obj=comp_pca_eot_s_varimax_rotated_obj,
-  #comp_eot_pca_unrotated_obj=comp_pca_eot_s_unrotated_obj
-  list_cor_df <- vector("list",length=length(list_no_component))
-  for(i in 1:length(list_no_component)){
-    
-    res_pix <- 480
-    col_mfrow <- 1
-    row_mfrow <- 1
-    fig_name <- paste("Figure_barplot_cor_eot_pca_","comparison_with_varimax_and_truncation_",list_no_component[[i]],out_suffix,".png",sep="")
-    png(filename= fig_name,
-        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    diag_rotated <- diag(as.matrix(comp_eot_pca_rotated_obj$list_cor[[i]]))
-    diag_unrotated <- diag(as.matrix(comp_eot_pca_unrotated_obj$list_cor[[i]]))
-    
-    comp_trunc1 <- as.vector(cbind(diag_rotated,diag_unrotated))
-    cor_df <- as.data.frame(data.frame(cor=comp_trunc1))
-    cor_df$type <- c(rep("r",10),rep("u",10))
-    names_components <- 1:10
-    #barplot(rbind(diag_rotated,diag_unrotated))
-    
-    barplot(rbind(as.numeric(diag_rotated),as.numeric(diag_unrotated)),main="",
-            xlab="component", col=c("darkblue","red"),ylim=c(-0.8,0.8),
-            legend = c("rotated","unrotated"), beside=TRUE,
-            names.arg=names_components)
-    title(paste(main="Correlation between EOT and PCA S mode: trunction ",list_no_component[[i]]))
-    dev.off()
-    
-    list_cor_df[[i]] <- cor_df
-  }
-  return(list_cor_df)
-}
-
-
 
 eot_no <- 10
 
-test <- comparison_eot_pca_corr_with_rotation_fun(comp_eot_pca_rotated_obj=comp_pca_eot_s_varimax_rotated_obj,
+fig_comp_obj <- comparison_eot_pca_corr_with_rotation_fun(comp_eot_pca_rotated_obj=comp_pca_eot_s_varimax_rotated_obj,
                                           comp_eot_pca_unrotated_obj=comp_pca_eot_s_unrotated_obj,list_no_component,
                                           eot_no)
-comparison_eot_pca_corr_with_rotation_fun <- function(comp_eot_pca_rotated_obj,comp_eot_pca_unrotated_obj,list_no_component,eot_no){
-  
-  list_diag_comp_tmp <- vector("list",length=length(list_no_component))
-  for(i in 1:length(list_no_component)){
-    diag_comp1 <- as.numeric(diag(as.matrix(comp_eot_pca_rotated_obj$list_cor[[i]])))
-    diag_comp2 <- as.numeric(diag(as.matrix(comp_eot_pca_unrotated_obj$list_cor[[i]])))
-    diag_comp_tmp <- rbind(diag_comp1,diag_comp2)
-    list_diag_comp_tmp[[i]] <- diag_comp1
-  }
-  
-  cor_table <- as.data.frame(do.call(rbind,list_diag_comp_tmp))
-  names(cor_table)<- paste("EOT",1:eot_no,sep="_")
-  #cor_table <- (do.call(rbind,list_diag_comp_tmp))
-  
-  for(i in 1:eot_no){
-
-    #show that the correlation between pca rotated 1 and EOT 1 decreases as the number of pc components
-    #increases
-    eot_name <- paste("EOT",i,sep="_")
-    
-    res_pix <- 480
-    col_mfrow <- 1
-    row_mfrow <- 1
-    fig_name1 <- paste("Figure_cor_eot_",i,"_pc_",i,"_","comparison_with_varimax_and_truncation_",out_suffix,".png",sep="")
-    png(filename= fig_name1,
-        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    ## Without absolute values
-    cor_table$truncation_var <- list_no_component
-    plot(((cor_table[[eot_name]]))~truncation_var,ylim=c(-1,1),type="b",
-         ylab="correlation",xlab="truncation component",data=cor_table)
-    abline(h=abs(as.numeric(diag_comp2[i])),lty="dashed") #correlation for unrotated
-    abline(h=0,lty="solid") #correlation for unrotated
-    title(paste("Correlation between PC",i, "varimax and",eot_name,"with different truncation",sep=" "))
-    dev.off()
-    
-    res_pix <- 480
-    col_mfrow <- 1
-    row_mfrow <- 1
-    fig_name2 <- paste("Figure_absolute_cor_eot_",i,"_pc_",i,"_","comparison_with_varimax_and_truncation_",out_suffix,".png",sep="")
-    png(filename= fig_name2,
-        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    ## now using absolute values
-    plot((abs(cor_table[[eot_name]]))~truncation_var,ylim=c(-1,1),type="b",
-         ylab="correlation",xlab="truncation component",data=cor_table)
-    abline(h=abs(as.numeric(diag_comp2[i])),lty="dashed") #correlation for unrotated
-    abline(h=0,lty="solid") #correlation for unrotated
-    title(paste("Absolute Correlation between PC",i, "varimax and",eot_name,"with different truncation",sep=" "))
-    dev.off()
-    
-  }
-  ##
-  return(cor_table)
-}
 
 #This suggests that there is no clear correspondance between MEOT and PCA with rotation
-#Redo analyses with eot and aggregation 1 (except if PCA is done with aggregation of one)
+#Redo analyses with eot and aggregation 1 or pca with aggregation of seven
 #
 
 
