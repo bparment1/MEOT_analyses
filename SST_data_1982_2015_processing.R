@@ -141,23 +141,40 @@ plot(r_mask)
 raster_name <- file.path(outDir,paste("sst_1982_2015","_masked.tif",sep=""))
 r_sst_m <- mask(r_sst,r_mask,filename=raster_name,overwrite=TRUE)
 
-plot(r_sst_m,y=12)
+plot(r_sst_m,y=c(1,7))
 filename(r_sst_m)
 inMemory(r_sst_m)
 
 ### rescale ##
 r_sst_m <- r_sst_m*1/(scaling)
+raster_name <- file.path(outDir,paste("sst_1982_2015","_masked_scaled.tif",sep=""))
+writeRaster(r_sst_m,filename=raster_name,overwrite=T)
 
 #writeRaster(r_sst_m,filename=)
+
+##Quick movie
+
 for(i in 1:24){
   plot(r_sst_m,y=i)
 }
 
 ### change coordinate systems??
-
-
+if(change_coordinates==T){
+  #
+  #
+  test <- r_sst_m
+  extent_raster <- c(-180,180,-90,90)
+  r <- setExtent(test, extent_raster, keepres=TRUE)
+  
+}
+test2 <- shift(test,x=-180)
+#shift to -180
+r_test <- raster()
 ## can use deseaon ater for anomalies 
-
+names(r_sst_m)<- r_sst_name
+#test<- subset(r_sst_m,1:12)
+rf <- writeRaster(r_sst_m, filename="sst.rst", format="IDRISI", overwrite=TRUE,bylayer=T,suffix=r_sst_name)
+#rf <- writeRaster(test, filename="sst.rst", format="IDRISI", overwrite=TRUE,bylayer=T,suffix=r_sst_name[1:12])
 
 
 ########################## END OF SCRIPT #######################
