@@ -75,8 +75,6 @@ out_suffix <-"NEST_prism_07032016" #output suffix for the files and ouptu folder
 create_out_dir_param=TRUE #PARAM8
 num_cores <- 4 #PARAM 9
 
-rainfall_dir <- "/home/bparmentier/Google Drive/NEST_Data" #PARAM 10
-station_data_fname <- file.path("/home/bparmentier/Google Drive/NEST_Data/", "WQ_TECS_Q.txt") #PARAM 11,DMR
 #station_data_fname <- file.path("/home/bparmentier/Google Drive/NEST/", "MHB_data_2006-2015.csv") #PARAM 11
 
 #years_to_process <- 2003:2016
@@ -135,6 +133,9 @@ system("gdal_translate -of GTiff '/home/bparmentier/Google\ Drive/Papers_writing
 r_mask <- raster("lsmask.tif")
 NAvalue(r_mask) <- 0
 plot(r_mask)
+projection(r_mask) <- CRS_WGS84
+raster_name <- file.path(outDir,paste("lsmasked_0_360.rst",sep=""))
+r_mask_rst <- writeRaster(r_mask, filename=raster_name, format="IDRISI", overwrite=TRUE)
 
 #filename(r_stt)
 #raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_masked.tif",sep=""))
@@ -162,19 +163,41 @@ for(i in 1:24){
 if(change_coordinates==T){
   #
   #
-  test <- r_sst_m
-  extent_raster <- c(-180,180,-90,90)
-  r <- setExtent(test, extent_raster, keepres=TRUE)
+  #test <- r_sst_m
+  #extent_raster <- c(-180,180,-90,90)
+  r_sst <- rotate(r_sst_m)
+  #r <- raster(nrow=180, ncol=360)
+  #m <- matrix(1:ncell(r), nrow=18)
+  #r[] <- as.vector(t(m))
+  #extent(r) <- extent(0, 360, -90, 90)
+  #rr <- rotate(r)
+  r_mask_0_180 <- rotate(r_mask)
+  projection(r_mask_0_180) <- CRS_WGS84
+  raster_name <- file.path(outDir,paste("lsmasked_0_180.rst",sep=""))
+  r_sst_0_180_rst <- writeRaster(r_mask_0_180, filename=raster_name, format="IDRISI", overwrite=TRUE)
   
+  
+  #r <- setExtent(test, extent_raster, keepres=TRUE)
+  #system("gdalwarp -t_srs WGS84 /home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_paper/SST_data_update_1982_2015/output_sst_07072016/sst_1982_2015_masked_scaled.tif 180.tif  -wo SOURCE_EXTRA=1000 --config CENTER_LONG 0")
 }
-test2 <- shift(test,x=-180)
-#shift to -180
-r_test <- raster()
-## can use deseaon ater for anomalies 
+
+
+## write out results
 names(r_sst_m)<- r_sst_name
+projection(r_sst_m) <- CRS_WGS84
 #test<- subset(r_sst_m,1:12)
-rf <- writeRaster(r_sst_m, filename="sst.rst", format="IDRISI", overwrite=TRUE,bylayer=T,suffix=r_sst_name)
+r_sst_0_360_rst <- writeRaster(r_sst_m, filename="sst_0_360.rst", format="IDRISI", overwrite=TRUE,bylayer=T,suffix=r_sst_name)
 #rf <- writeRaster(test, filename="sst.rst", format="IDRISI", overwrite=TRUE,bylayer=T,suffix=r_sst_name[1:12])
+
+names(r_sst)<- r_sst_name
+projection(r_sst) <- CRS_WGS84
+#test<- subset(r_sst_m,1:12)
+r_sst_0_180_rst <- writeRaster(r_sst, filename="sst_0_180.rst", format="IDRISI", overwrite=TRUE,bylayer=T,suffix=r_sst_name)
+#rf <- writeRaster(test, filename="sst.rst", format="IDRISI", overwrite=TRUE,bylayer=T,suffix=r_sst_name[1:12])
+
+########
+##can use deseaon ater for anomalies from the remote package R
+
 
 
 ########################## END OF SCRIPT #######################
