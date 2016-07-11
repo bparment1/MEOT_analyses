@@ -6,8 +6,8 @@
 #The goal is to run EOT, MEOT and PCA on the updated SST dataset using the IDRISI and the R package "remote".
 #
 #AUTHOR: Benoit Parmentier                                                                       #
-#DATE CREATED:07/15/2016 
-#DATE MODIFIED: 07/19/2016
+#DATE CREATED:07/11/2016 
+#DATE MODIFIED: 07/11/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -33,7 +33,6 @@ library(GPArotation)
 library(zoo)
 library(xts)
 library(remote)                            # EOT implementation in R/cpp
-library(XML)                               # HTML funcitons
 
 #################################################
 ###### Functions  used in the script  ##########
@@ -57,191 +56,71 @@ load_obj <- function(f){
   env[[nm]]
 }
 
-convert_to_numeric <-function(x){
-  if(class(x)=="character"){
-    x<-as.numeric(x)
-  }
-  ##
-  if(class(x)=="factor"){
-    x<-as.numeric(as.character(x))
-  }
-  return(x)
-}
-
-
-crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_prefix){
-  #This function crosss correlates between two sets of time series given some lag window.
-  #Arguments:
-  #1)telind: time series 1 as character vector
-  #2)modelist: time series 2 as character vector
-  #3)d_z: zoo object 
-  #4)lag_window:
-  #5)fig:
-  
-  lag_table_ext<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
-  lag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
-  lag_table_text<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list)) #Formatted table used in the paper
-  #lag_cross_cor_PCA<-vector("list",length(mode_list))
-  lag_m<-seq(-1*lag_window,lag_window,1)
-  #retain ccf!!!
-  #list_ccf_lag_table
-  
-  #lag_cross_cor_PCA_m<-array(data=NA,nrow=length(lag_m),ncol=length(mode_list))
-  for (i in 1:length(telind)){
-    telindex<-telind[i]
-    pos1<-match(telindex,names(d_z))
-    #retain ccf!!!
-    for (j in 1:length(mode_list)){
-      mode_n<-mode_list[j]
-      pos2<-match(mode_n,names(d_z))
-      ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=lag_window)  #Note that ccf does not take
-      
-      lag_m<-seq(-1*lag_window,lag_window,1)
-      ccf_obj$lag[,1,1]<-lag_m  #replacing lag values because continuous
-      
-      if (fig=="TRUE"){
-        plot_name<-paste(telindex, "and", mode_n,"lag analysis",sep="_")
-        png(paste(plot_name,"_",out_prefix,".png", sep=""))
-        plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
-             xlab="Lag (month)", ylim=c(-1,1))
-        dev.off()
-      }
-      
-      ######### NOW FIND THE m
-      absext <-max(abs(ccf_obj$acf)) # maximum of the extremum
-      pos<-match(absext,ccf_obj$acf) #find the position and lag, if NA it means it was negative
-      if (is.na(pos)) {
-        pos<-match(absext*-1,ccf_obj$acf)
-        absext<-absext*-1   #recover the sign
-      } 
-      absext_lag<-ccf_obj$lag[pos,1,1] #This is the lag corresponding to the maximum absolute value
-      
-      lag_table_ext[i,j]<-absext
-      lag_table_lag[i,j]<-absext_lag
-      #number<-format(absext,digits=3)
-      ext<-round(absext,digits=3)
-      element<-paste(ext," (",absext_lag,")",sep="")
-      lag_table_text[i,j]<-element
-      
-      ##Keep ccf lag somewhere
-    }
-  }
-  
-  lag_table_ext<-as.data.frame(lag_table_ext)
-  names(lag_table_ext)<-mode_list
-  rownames(lag_table_ext)<-telind
-  file_name<-paste("lag_table_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
-  write.table(lag_table_ext,file=file_name,sep=",")
-  
-  lag_table_lag<-as.data.frame(lag_table_lag)
-  names(lag_table_lag)<-mode_list
-  rownames(lag_table_lag)<-telind
-  file_name<-paste("lag_table_lag_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
-  write.table(lag_table_lag,file=file_name,sep=",")
-  
-  lag_table_text<-as.data.frame(lag_table_text)
-  names(lag_table_text)<-mode_list
-  rownames(lag_table_text)<-telind
-  file_name<-paste("lag_table_lag_ext_text", lag_window,"_",out_prefix,".txt",sep="")
-  write.table(lag_table_text,file=file_name,sep=",")
-  
-  #create return object
-  
-  crosscor_obj<-list(lag_table_ext,lag_table_lag,lag_table_text)
-  names(crosscor_obj)<-c("extremum","lag_ext","text")
-  file_name<-paste("crosscor_obj_lag_analysis_", lag_window,"_",out_prefix,".RData",sep="")
-  save(crosscor_obj,file=file_name)
-  
-  return(crosscor_obj)
-}
-
-cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
-  
-  cor_table <- matrix(data=NA,nrow=length(ts1),ncol=length(ts2))
-  #ag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
-  #lag_table_text<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list)) #Formatted table used in the paper
-  
-  for(i in 1:ncol(ts1)){
-    tfs1 <- ts1[,i]
-    #retain ccf!!!
-    names_tfs1 <- names(ts1)[i]
-    
-    for(j in 1:ncol(ts2)){
-      tfs2 <- ts2[,j]
-      names_tfs2 <- names(ts2)[j]
-      
-      cor_val <- cor(tfs1,tfs2)
-      
-      ### add this as time series later?
-      
-      if (fig=="TRUE"){
-        plot_name<-paste(names_tfs1, "and",names_tfs2,"scatter_plot_cor_analysis",sep="_")
-        png(paste(plot_name,"_",out_suffix,".png", sep=""))
-        plot(tfs2 ~ tfs1, main= paste(names_tfs1, "and", names_tfs2 ,"cor analysis",sep=" "), 
-             ylab=names_tfs2,
-             xlab=names_tfs1)
-        dev.off()
-        
-        ## Temporal profiles of both time series
-        y_range <- range(c(tfs1,tfs2))
-        plot_name<-paste(names_tfs1, "and",names_tfs2,"series_profile_cor_analysis",sep="_")
-        
-        png(paste(plot_name,"_",out_suffix,".png", sep=""))
-        plot(tfs1, main= paste(names_tfs1, "and", names_tfs2,"cor analysis",sep=" "), 
-             ylab="Series",
-             xlab="time steps",
-             y_lim=y_range,
-             type="l")
-        par(new = TRUE)
-        plot(tfs2, type = "l", col="blue", axes = FALSE, bty = "n", xlab = "", ylab = "")
-        axis(side=4, at = pretty(range(tfs2)))
-        mtext("z", side=4, line=3)
-        
-        legend("topleft",legend=c(names_tfs1,names_tfs2), cex=0.8, 
-               #col=c("blue","darkgreen"),
-               col=c("black","blue"),
-               lty=c(1,2),lwd=2,
-               bty="n")  #lwd=line width
-        
-        #lines(tfs2, col="blue")
-        
-        dev.off()
-        
-      }
-      
-      ######### NOW FIND THE m
-      
-      #cor_table[i,j] <- format(cor_val,digits=4)
-      cor_table[i,j] <- as.numeric((format(cor_val,digits=4)))
-      
-      ##Keep ccf lag somewhere
-      
-    }
-  }
-  #browser()
-  cor_table <-as.data.frame(cor_table)
-  names(cor_table) <- names(ts2)
-  rownames(cor_table)<- names(ts1)
-  file_name <- paste("cor_table_",out_suffix,".txt",sep="")
-  write.table(cor_table,file=file_name,sep=",")
-  
-  return(cor_table)
-  
-}
-
-
 #infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-#                             "EOT_PCA_rotation_functions_01092016.R")
+#                              "EOT_PCA_rotation_functions_09152015.R")
 #source(infile1_function)
 
+#############################################
+######## Parameters and arguments  ########
 
-########################## END OF SCRIPT #########################
+CRS_WGS84 <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #Station coords WGS84 # CONST 2
+proj_str<- CRS_WGS84 #param 2
+CRS_reg <- CRS_WGS84 # PARAM 3
 
-#data(vdendool) #data of 36 cols and 14 rows! very small
+file_format <- ".rst" #PARAM 4
+NA_value <- -9999 #PARAM5
+NA_value_SST <- 32767
+NA_flag_val <- NA_value #PARAM6
+out_suffix <-"NEST_prism_07112016" #output suffix for the files and ouptu folder #PARAM 7
+create_out_dir_param=TRUE #PARAM8
+num_cores <- 4 #PARAM 9
 
-## claculate 2 leading modes
-#nh_modes <- eot(x = vdendool, y = NULL, n = 2,
-#                standardised = FALSE,
-#                verbose = TRUE)
-#plot(nh_modes, y = 1, show.bp = TRUE)
-#plot(nh_modes, y = 2, show.bp = TRUE)
+#station_data_fname <- file.path("/home/bparmentier/Google Drive/NEST/", "MHB_data_2006-2015.csv") #PARAM 11
+
+#years_to_process <- 2003:2016
+years_to_process <- 1982:2016
+#start_date <- "2012-01-01" #PARAM 12
+#end_date <- "2012-12-31" #PARAM 13 #should process by year!!!
+var_name <- "sst" #PARAM 14, Name of variable of interest: bacteria measurement (DMR data)
+scaling <- 1/0.0099999998
+
+r_mask_filename <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_paper/SST_data_update_1982_2015/lsmask.nc"
+
+out_suffix <- "sst_old_data_pca_07072016"
+inDir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/000_EOT/EOT_MEOT/data/Old_data"
+setwd(inDir)
+
+#outDir <- "/Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012"
+#outDir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper"
+outDir <- inDir
+
+create_outDir_param = TRUE
+
+#Create output directory
+
+if(create_outDir_param==TRUE){  
+  outDir <- create_dir_fun(outDir,out_suffix)
+  setwd(outDir)
+}else{
+  setwd(outDir) #use previoulsy defined directory
+}
+
+########################################################
+##############  Start of th script  ##############
+
+### PART 0: READ IN DATASETS RELATED TO TELECONNECTION AND PREVIOUS LOADINGS
+#http://geog.uoregon.edu/bartlein/courses/geog607/Rmd/netCDF_01.htm
+
+
+library(XML)
+
+
+#scrping tables from html pages
+#http://stackoverflow.com/questions/1395528/scraping-html-tables-into-r-data-frames-using-the-xml-package
+
+library(XML)
+theurl <- "file:///home/bparmentier/Google%20Drive/Papers_writing_MEOT/000_EOT/EOT_MEOT/data/Old_data/PCA_old_S-MODE_stn_cn_20comp.html"
+tables <- readHTMLTable(theurl)
+tables <- readHTMLTable(theurl,header=T)
+n.rows <- unlist(lapply(tables, function(t) dim(t)[1]))
+
