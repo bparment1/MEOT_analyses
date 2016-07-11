@@ -33,6 +33,7 @@ library(GPArotation)
 library(zoo)
 library(xts)
 library(remote)                            # EOT implementation in R/cpp
+library(XML)
 
 #################################################
 ###### Functions  used in the script  ##########
@@ -112,15 +113,37 @@ if(create_outDir_param==TRUE){
 #http://geog.uoregon.edu/bartlein/courses/geog607/Rmd/netCDF_01.htm
 
 
-library(XML)
-
-
 #scrping tables from html pages
 #http://stackoverflow.com/questions/1395528/scraping-html-tables-into-r-data-frames-using-the-xml-package
 
-library(XML)
+#make this a function
 theurl <- "file:///home/bparmentier/Google%20Drive/Papers_writing_MEOT/000_EOT/EOT_MEOT/data/Old_data/PCA_old_S-MODE_stn_cn_20comp.html"
-tables <- readHTMLTable(theurl)
-tables <- readHTMLTable(theurl,header=T)
-n.rows <- unlist(lapply(tables, function(t) dim(t)[1]))
+#l_tables <- readHTMLTable(theurl)
+l_tables <- readHTMLTable(theurl,header=T) #list of tables extracted from the html documents
+n.rows <- unlist(lapply(l_tables, function(t) dim(t)[1]))
+variance_df1 <- l_tables[[1]]
+components_df1 <- l_tables[[2]]
 
+## table
+theurl <- "file:///home/bparmentier/Google%20Drive/Papers_writing_MEOT/000_EOT/EOT_MEOT/data/New_data/S-MODE1_newdata_1982_2007.html"
+l_tables <- readHTMLTable(theurl,header=T) #list of tables extracted from the html documents
+n.rows <- unlist(lapply(l_tables, function(t) dim(t)[1]))
+variance_df2 <- l_tables[[1]]
+components_df2 <- l_tables[[2]]
+
+###
+x1 <- df[,i]
+x2 <- df[,i]
+
+cor_series_fun(ts1,ts2,fig=F,out_suffix)
+  
+########################## END OF SCRIPT
+
+#data(vdendool) #data of 36 cols and 14 rows! very small
+
+## claculate 2 leading modes
+#nh_modes <- eot(x = vdendool, y = NULL, n = 2,
+#                standardised = FALSE,
+#                verbose = TRUE)
+#plot(nh_modes, y = 1, show.bp = TRUE)
+#plot(nh_modes, y = 2, show.bp = TRUE)
