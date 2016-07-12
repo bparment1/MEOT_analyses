@@ -7,7 +7,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/11/2016 
-#DATE MODIFIED: 07/11/2016
+#DATE MODIFIED: 07/12/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -139,6 +139,7 @@ components_df1 <- l_tables[[2]]
 rownames(components_df1) <- as.character(components_df1[,1])
 components_df1 <- components_df1[,-1]
 
+
 #reformat
 test<-lapply(components_df1,FUN=convert_to_numeric)
 test2<- do.call(cbind,test)
@@ -149,7 +150,7 @@ components_df1 <- test2
   
 ### OLD DATA: 1982-2015
 ## table
-theurl <- "file:///home/bparmentier/Google%20Drive/Papers_writing_MEOT/000_EOT/EOT_MEOT/data/New_data/S-MODE1_newdata_1982_2007.html"
+theurl <- "file:///home/bparmentier/Google%20Drive/Papers_writing_MEOT/000_EOT/EOT_MEOT/data/New_data3/New_data/S-MODE1_newdata_1982_2007.html"
 l_tables <- readHTMLTable(theurl,header=T) #list of tables extracted from the html documents
 n.rows <- unlist(lapply(l_tables, function(t) dim(t)[1]))
 variance_df2 <- l_tables[[1]]
@@ -177,7 +178,7 @@ barplot(as.numeric(diag(as.matrix(test))),
    
 #############
 
-
+#pca_old_smode_stn_cn_anom_sst_1982_2007_PCA_Center_Std_S-Mode_loadings.csv
 
 ########################## END OF SCRIPT
 
