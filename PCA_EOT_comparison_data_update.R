@@ -33,7 +33,7 @@ library(GPArotation)
 library(zoo)
 library(xts)
 library(remote)                            # EOT implementation in R/cpp
-library(XML)
+library(XML)                               # HTML funcitons
 
 #################################################
 ###### Functions  used in the script  ##########
@@ -57,9 +57,20 @@ load_obj <- function(f){
   env[[nm]]
 }
 
-#infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-#                              "EOT_PCA_rotation_functions_09152015.R")
-#source(infile1_function)
+convert_to_numeric <-function(x){
+  if(class(x)=="character"){
+    x<-as.numeric(x)
+  }
+  ##
+  if(class(x)=="factor"){
+    x<-as.numeric(as.character(x))
+  }
+  return(x)
+}
+
+infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
+                             "EOT_PCA_rotation_functions_01092016.R")
+source(infile1_function)
 
 #############################################
 ######## Parameters and arguments  ########
@@ -106,6 +117,7 @@ if(create_outDir_param==TRUE){
   setwd(outDir) #use previoulsy defined directory
 }
 
+
 ########################################################
 ##############  Start of th script  ##############
 
@@ -116,6 +128,7 @@ if(create_outDir_param==TRUE){
 #scrping tables from html pages
 #http://stackoverflow.com/questions/1395528/scraping-html-tables-into-r-data-frames-using-the-xml-package
 
+### OLD DATA: 1982-2007
 #make this a function
 theurl <- "file:///home/bparmentier/Google%20Drive/Papers_writing_MEOT/000_EOT/EOT_MEOT/data/Old_data/PCA_old_S-MODE_stn_cn_20comp.html"
 #l_tables <- readHTMLTable(theurl)
@@ -123,20 +136,49 @@ l_tables <- readHTMLTable(theurl,header=T) #list of tables extracted from the ht
 n.rows <- unlist(lapply(l_tables, function(t) dim(t)[1]))
 variance_df1 <- l_tables[[1]]
 components_df1 <- l_tables[[2]]
+rownames(components_df1) <- as.character(components_df1[,1])
+components_df1 <- components_df1[,-1]
 
+#reformat
+test<-lapply(components_df1,FUN=convert_to_numeric)
+test2<- do.call(cbind,test)
+test2 <- as.data.frame(test2)
+names(test2)
+names(test2)<- paste0("cp_old_",1:20)
+components_df1 <- test2
+  
+### OLD DATA: 1982-2015
 ## table
 theurl <- "file:///home/bparmentier/Google%20Drive/Papers_writing_MEOT/000_EOT/EOT_MEOT/data/New_data/S-MODE1_newdata_1982_2007.html"
 l_tables <- readHTMLTable(theurl,header=T) #list of tables extracted from the html documents
 n.rows <- unlist(lapply(l_tables, function(t) dim(t)[1]))
 variance_df2 <- l_tables[[1]]
 components_df2 <- l_tables[[2]]
+rownames(components_df2) <- as.character(components_df2[,1])
+components_df2 <- components_df2[,-1]
+
+#reformat
+test<-lapply(components_df2,FUN=convert_to_numeric)
+test2<- do.call(cbind,test)
+test2 <- as.data.frame(test2)
+names(test2)
+names(test2)<- paste0("cp_new_",1:20)
+components_df2 <- test2
 
 ###
-x1 <- df[,i]
-x2 <- df[,i]
 
-cor_series_fun(ts1,ts2,fig=F,out_suffix)
-  
+#cor_series_fun(ts1,ts2,fig=F,out_suffix)
+#debug(cor_series_fun)
+test <- cor_series_fun(ts1=components_df1,ts2=components_df2,fig=F,out_suffix)
+
+barplot(as.numeric(diag(as.matrix(test))),
+        ylim=c(-1,1),
+        names.arg=1:20) #Okay very similar results
+   
+#############
+
+
+
 ########################## END OF SCRIPT
 
 #data(vdendool) #data of 36 cols and 14 rows! very small
