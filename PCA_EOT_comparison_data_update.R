@@ -7,7 +7,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/11/2016 
-#DATE MODIFIED: 07/12/2016
+#DATE MODIFIED: 07/15/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -15,61 +15,31 @@
 #
 ###Loading r library and packages
 
-library(raster)                             # loading the raster package
-library(gtools)                             # loading ...
-library(sp)                                 # spatial objects in R
-library(gplots)                             # 
-library(rgdal)                              # gdal driver for R
-library(RColorBrewer)                       # color scheme, palettes used for plotting
-library(gdata)                              # read different format (including .xlsx)
-library(plotrix)                            # plot options and functions including plotCI
-library(rasterVis)                          # raster visualization
-library(gridExtra)
-library(latticeExtra)
-library(colorRamps)                         # contains matlab.like palette
-library(lsr)
-library(psych)
-library(GPArotation)
-library(zoo)
-library(xts)
+library(raster)                            # loading the raster package
+library(gtools)                            # loading ...
+library(sp)                                # spatial objects in R
+library(gplots)                            # 
+library(rgdal)                             # gdal driver for R
+library(RColorBrewer)                      # color scheme, palettes used for plotting
+library(gdata)                             # read different format (including .xlsx)
+library(plotrix)                           # plot options and functions including plotCI
+library(rasterVis)                         # raster visualization
+library(gridExtra)                         # graphic package
+library(latticeExtra)                      # graphic package
+library(colorRamps)                        # contains matlab.like palette
+library(lsr)                               #
+library(psych)                             # PCA
+library(GPArotation)                       # PCA rotation
+library(zoo)                               # Time series object and functions
+library(xts)                               # Time series object and functions
 library(remote)                            # EOT implementation in R/cpp
 library(XML)                               # HTML funcitons
 
 #################################################
 ###### Functions  used in the script  ##########
 
-create_dir_fun <- function(outDir,out_suffix){
-  #if out_suffix is not null then append out_suffix string
-  if(!is.null(out_suffix)){
-    out_name <- paste("output_",out_suffix,sep="")
-    outDir <- file.path(outDir,out_name)
-  }
-  #create if does not exists
-  if(!file.exists(outDir)){
-    dir.create(outDir)
-  }
-  return(outDir)
-}
-
-load_obj <- function(f){
-  env <- new.env()
-  nm <- load(f, env)[1]
-  env[[nm]]
-}
-
-convert_to_numeric <-function(x){
-  if(class(x)=="character"){
-    x<-as.numeric(x)
-  }
-  ##
-  if(class(x)=="factor"){
-    x<-as.numeric(as.character(x))
-  }
-  return(x)
-}
-
 infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-                             "EOT_PCA_rotation_functions_01092016.R")
+                             "PCA_EOT_comparison_data_update_function_07152016.R")
 source(infile1_function)
 
 #############################################
@@ -90,7 +60,7 @@ num_cores <- 4 #PARAM 9
 #station_data_fname <- file.path("/home/bparmentier/Google Drive/NEST/", "MHB_data_2006-2015.csv") #PARAM 11
 
 #years_to_process <- 2003:2016
-years_to_process <- 1982:2016
+years_to_process <- 1982:2015
 #start_date <- "2012-01-01" #PARAM 12
 #end_date <- "2012-12-31" #PARAM 13 #should process by year!!!
 var_name <- "sst" #PARAM 14, Name of variable of interest: bacteria measurement (DMR data)
@@ -98,8 +68,8 @@ scaling <- 1/0.0099999998
 
 r_mask_filename <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_paper/SST_data_update_1982_2015/lsmask.nc"
 
-out_suffix <- "sst_old_data_pca_07072016"
-inDir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/000_EOT/EOT_MEOT/data/Old_data"
+out_suffix <- "eot_pca_1982_2015_anom_07152016"
+inDir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/EOT82_15_July12run/sst_msk_0_180_1982_2015_anom/components"
 setwd(inDir)
 
 #outDir <- "/Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012"
@@ -117,6 +87,17 @@ if(create_outDir_param==TRUE){
   setwd(outDir) #use previoulsy defined directory
 }
 
+SST_dir <- "SST_1982_2015"
+eot_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/workdir_terrset_08282015/anom_sst_1982_2007/components"
+mask_fname <- "mask_rgf_1_1.tif"
+eot_fname1 <- "eot_std_s7_test__EOT_Center_Std.avl"
+#out_suffix <-"_eot_pca_12272015"
+C#RS_WGS84 <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #Station coords WGS84 # CONST 2
+
+lf_sst <- list.files(path=file.path(inDir,SST_dir),pattern=".rst$",full.names=T)
+
+pca_fname1 <- file.path(in_dir,"sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_DIF.ods") #ods file with loadings and variance
+eot_fname1 <- file.path(in_dir,"eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std.ods")
 
 ########################################################
 ##############  Start of th script  ##############
