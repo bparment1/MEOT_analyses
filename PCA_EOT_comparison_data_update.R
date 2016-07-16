@@ -7,7 +7,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/11/2016 
-#DATE MODIFIED: 07/15/2016
+#DATE MODIFIED: 07/16/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -34,6 +34,8 @@ library(zoo)                               # Time series object and functions
 library(xts)                               # Time series object and functions
 library(remote)                            # EOT implementation in R/cpp
 library(XML)                               # HTML funcitons
+library(readODS)                           # read open data spreadsheet format
+library(plyr)                              # contains "rename","revalue" and other useful functions
 
 #################################################
 ###### Functions  used in the script  ##########
@@ -53,51 +55,60 @@ file_format <- ".rst" #PARAM 4
 NA_value <- -9999 #PARAM5
 NA_value_SST <- 32767
 NA_flag_val <- NA_value #PARAM6
-out_suffix <-"NEST_prism_07112016" #output suffix for the files and ouptu folder #PARAM 7
+
+out_suffix <- "eot_pca_1982_2015_anom_07152016"
 create_out_dir_param=TRUE #PARAM8
 num_cores <- 4 #PARAM 9
 
-#station_data_fname <- file.path("/home/bparmentier/Google Drive/NEST/", "MHB_data_2006-2015.csv") #PARAM 11
-
-#years_to_process <- 2003:2016
 years_to_process <- 1982:2015
 #start_date <- "2012-01-01" #PARAM 12
 #end_date <- "2012-12-31" #PARAM 13 #should process by year!!!
 var_name <- "sst" #PARAM 14, Name of variable of interest: bacteria measurement (DMR data)
 scaling <- 1/0.0099999998
 
-r_mask_filename <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_paper/SST_data_update_1982_2015/lsmask.nc"
+r_mask_filename <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/data/lsmasked_0_180.rst"
 
-out_suffix <- "eot_pca_1982_2015_anom_07152016"
-inDir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/EOT82_15_July12run/sst_msk_0_180_1982_2015_anom/components"
-setwd(inDir)
+in_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/EOT82_15_July12run/sst_msk_0_180_1982_2015_anom/components"
+setwd(in_dir)
 
-#outDir <- "/Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012"
-#outDir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper"
-outDir <- inDir
+#out_dir <- "/Users/benoitparmentier/Dropbox/Data/Dissertation_paper2_04142012"
+#out_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper"
+out_dir <- in_dir
 
-create_outDir_param = TRUE
+create_out_dir_param = TRUE
 
 #Create output directory
 
-if(create_outDir_param==TRUE){  
-  outDir <- create_dir_fun(outDir,out_suffix)
-  setwd(outDir)
+if(create_out_dir_param==TRUE){  
+  out_dir <- create_dir_fun(out_dir,out_suffix)
+  setwd(out_dir)
 }else{
-  setwd(outDir) #use previoulsy defined directory
+  setwd(out_dir) #use previoulsy defined directory
 }
 
 SST_dir <- "SST_1982_2015"
 eot_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/workdir_terrset_08282015/anom_sst_1982_2007/components"
-mask_fname <- "mask_rgf_1_1.tif"
-eot_fname1 <- "eot_std_s7_test__EOT_Center_Std.avl"
+#mask_fname <- "mask_rgf_1_1.tif"
+#eot_fname1 <- "eot_std_s7_test__EOT_Center_Std.avl"
 #out_suffix <-"_eot_pca_12272015"
 C#RS_WGS84 <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #Station coords WGS84 # CONST 2
 
-lf_sst <- list.files(path=file.path(inDir,SST_dir),pattern=".rst$",full.names=T)
+lf_sst <- list.files(path=file.path(in_dir,SST_dir),pattern=".rst$",full.names=T)
 
 pca_fname1 <- file.path(in_dir,"sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_DIF.ods") #ods file with loadings and variance
 eot_fname1 <- file.path(in_dir,"eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std.ods")
+
+indices_fname <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/data/indices_new.xls"
+
+telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
+#mode_list_MEOT<-c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
+#mode_list_MEOT<-paste("MEOT",1:25,sep="")
+#c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
+
+#mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")    
+#mode_list_PCA<-paste("MSSA",1:15,sep="")
+
+lag_window<-13
 
 ########################################################
 ##############  Start of th script  ##############
@@ -109,50 +120,50 @@ eot_fname1 <- file.path(in_dir,"eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std.
 #scrping tables from html pages
 #http://stackoverflow.com/questions/1395528/scraping-html-tables-into-r-data-frames-using-the-xml-package
 
-### OLD DATA: 1982-2007
-#make this a function
-theurl <- "file:///home/bparmentier/Google%20Drive/Papers_writing_MEOT/000_EOT/EOT_MEOT/data/Old_data/PCA_old_S-MODE_stn_cn_20comp.html"
-#l_tables <- readHTMLTable(theurl)
-l_tables <- readHTMLTable(theurl,header=T) #list of tables extracted from the html documents
-n.rows <- unlist(lapply(l_tables, function(t) dim(t)[1]))
-variance_df1 <- l_tables[[1]]
-components_df1 <- l_tables[[2]]
-rownames(components_df1) <- as.character(components_df1[,1])
-components_df1 <- components_df1[,-1]
+### GET DATA: 1982-2015 EOT and PCA
 
+pca_dat <- read_ods(pca_fname1,sheet="pca_loadings")
+#test <- read_ods(eot_fname1,sheet="pca_loadings")
+names(pca_dat)[1] <- "fnames"
+names(pca_dat)[2:ncol(pca_dat)] <- paste0("pc_",1:20)
+test <- subset(pca_dat,select=paste0("pc_",1:20))
+test<-lapply(test,FUN=convert_to_numeric)
+test<- do.call(cbind,test)
+pca_dat <- as.data.frame(test)
 
-#reformat
-test<-lapply(components_df1,FUN=convert_to_numeric)
-test2<- do.call(cbind,test)
-test2 <- as.data.frame(test2)
-names(test2)
-names(test2)<- paste0("cp_old_",1:20)
-components_df1 <- test2
-  
-### OLD DATA: 1982-2015
-## table
-theurl <- "file:///home/bparmentier/Google%20Drive/Papers_writing_MEOT/000_EOT/EOT_MEOT/data/New_data3/New_data/S-MODE1_newdata_1982_2007.html"
-l_tables <- readHTMLTable(theurl,header=T) #list of tables extracted from the html documents
-n.rows <- unlist(lapply(l_tables, function(t) dim(t)[1]))
-variance_df2 <- l_tables[[1]]
-components_df2 <- l_tables[[2]]
-rownames(components_df2) <- as.character(components_df2[,1])
-components_df2 <- components_df2[,-1]
+#Import results from MEOT and MSSA analyses with teleconneciton indices
+dat<-read.xls(indices_fname, sheet="1982-2015")
+names(dat)[1:2] <- c("year","month")
+dat <- rename(dat, c("QBO_30_original"="QBO")) #from plyr package
 
-#reformat
-test<-lapply(components_df2,FUN=convert_to_numeric)
-test2<- do.call(cbind,test)
-test2 <- as.data.frame(test2)
-names(test2)
-names(test2)<- paste0("cp_new_",1:20)
-components_df2 <- test2
+dat_indices <- subset(dat,select=telind)
+
+##Not elegant but works for now...
+test<-lapply(dat_indices ,FUN=convert_to_numeric)
+test<- do.call(cbind,test)
+dat_indices  <- as.data.frame(test)
+
+#Creating time series objects
+d_ts<-ts(data=dat,start=c(1982,1), end=c(2015,12), frequency=12, names=names(dat))
+colnames(d_ts)
+d_z<-as.zoo(d_ts)  #### THIS IS THE TIME SERIES OBJECT USED LATER ON
+d_xts<-as.xts(d_ts)
+
+## find all 7th of the month between two dates, the last being a 7th.
+st <- as.Date("1982-1-15")
+en <- as.Date("2015-12-15")
+dseq <- seq(st, en, by="month") #Creating monthly date sequence to create a time series from a data frame
+d_z2<-zoo(dat,dseq)
+time(d_z)  #no time stamp??
+time(d_z2) 
 
 ###
 
 #cor_series_fun(ts1,ts2,fig=F,out_suffix)
 #debug(cor_series_fun)
-test <- cor_series_fun(ts1=components_df1,ts2=components_df2,fig=F,out_suffix)
-
+test <- cor_series_fun(ts1=pca_dat,ts2=dat_indices,fig=F,out_suffix)
+convert_to_numeric <-function(x)
+  
 barplot(as.numeric(diag(as.matrix(test))),
         ylim=c(-1,1),
         names.arg=1:20) #Okay very similar results
