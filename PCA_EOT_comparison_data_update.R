@@ -131,7 +131,15 @@ test<-lapply(test,FUN=convert_to_numeric)
 test<- do.call(cbind,test)
 pca_dat <- as.data.frame(test)
 
-#Import results from MEOT and MSSA analyses with teleconneciton indices
+eot_dat <- read_ods(eot_fname1,sheet="eot_loadings")
+#test <- read_ods(eot_fname1,sheet="pca_loadings")
+test <- subset(eot_dat,select=paste0("eot",1:20))
+test<-lapply(test,FUN=convert_to_numeric)
+test<- do.call(cbind,test)
+eot_dat <- as.data.frame(test)
+
+#Import results teleconneciton indices processed by Elsa 
+
 dat<-read.xls(indices_fname, sheet="1982-2015")
 names(dat)[1:2] <- c("year","month")
 dat <- rename(dat, c("QBO_30_original"="QBO")) #from plyr package
@@ -157,28 +165,27 @@ d_z2<-zoo(dat,dseq)
 time(d_z)  #no time stamp??
 time(d_z2) 
 
-###
+### NOW CARRY OUT CORRELATION BETWEEN INDICES AND COMPONENTS
 
 #cor_series_fun(ts1,ts2,fig=F,out_suffix)
 #debug(cor_series_fun)
-test <- cor_series_fun(ts1=pca_dat,ts2=dat_indices,fig=F,out_suffix)
-convert_to_numeric <-function(x)
-  
-barplot(as.numeric(diag(as.matrix(test))),
+cor_pca_df <- cor_series_fun(ts1=pca_dat,ts2=dat_indices,fig=F,out_suffix)
+write.table(cor_pca_df ,file=file.path(out_dir,paste0("cor_pca_df","_",out_suffix,".txt")),sep=",")
+
+barplot(as.numeric(diag(as.matrix(cor_pca_df))),
         ylim=c(-1,1),
         names.arg=1:20) #Okay very similar results
-   
-#############
 
-#pca_old_smode_stn_cn_anom_sst_1982_2007_PCA_Center_Std_S-Mode_loadings.csv
+cor_eot_df <- cor_series_fun(ts1=eot_dat,ts2=dat_indices,fig=F,out_suffix)
+write.table(cor_eot_df ,file=file.path(out_dir,paste0("cor_eot_df","_",out_suffix,".txt")),sep=",")
 
-########################## END OF SCRIPT
+barplot(as.numeric(diag(as.matrix(cor_eot_df))),
+        ylim=c(-1,1),
+        names.arg=1:20) #Okay very similar results
 
-#data(vdendool) #data of 36 cols and 14 rows! very small
+### generate barplot for each components + indices?
+### Generate maps+ temporal loadings figures for each (pca and eot!!)
+### Generate maps+ barplots?
 
-## claculate 2 leading modes
-#nh_modes <- eot(x = vdendool, y = NULL, n = 2,
-#                standardised = FALSE,
-#                verbose = TRUE)
-#plot(nh_modes, y = 1, show.bp = TRUE)
-#plot(nh_modes, y = 2, show.bp = TRUE)
+########################## END OF SCRIPT ###############################################
+
