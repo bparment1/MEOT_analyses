@@ -7,10 +7,10 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/11/2016 
-#DATE MODIFIED: 07/16/2016
+#DATE MODIFIED: 07/18/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
-#
+#           
 ##################################################################################################
 #
 ###Loading r library and packages
@@ -64,7 +64,7 @@ years_to_process <- 1982:2015
 #start_date <- "2012-01-01" #PARAM 12
 #end_date <- "2012-12-31" #PARAM 13 #should process by year!!!
 var_name <- "sst" #PARAM 14, Name of variable of interest: bacteria measurement (DMR data)
-scaling <- 1/0.0099999998
+#scaling <- 1/0.0099999998
 
 r_mask_filename <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/data/lsmasked_0_180.rst"
 
@@ -87,56 +87,28 @@ if(create_out_dir_param==TRUE){
 }
 
 SST_dir <- "SST_1982_2015"
-eot_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/workdir_terrset_08282015/anom_sst_1982_2007/components"
-#mask_fname <- "mask_rgf_1_1.tif"
-#eot_fname1 <- "eot_std_s7_test__EOT_Center_Std.avl"
-#out_suffix <-"_eot_pca_12272015"
-C#RS_WGS84 <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #Station coords WGS84 # CONST 2
+eot_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/EOT82_15_July12run/sst_msk_0_180_1982_2015_anom/components"
+pca_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/EOT82_15_July12run/sst_msk_0_180_1982_2015_anom/components"
 
 lf_sst <- list.files(path=file.path(in_dir,SST_dir),pattern=".rst$",full.names=T)
+### Get EOT and PCA raster images here!!
+lf_eot <- list.files(path=eot_dir,pattern="eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std_.*._R.rst$",full.names=T)
+lf_pca <- list.files(path=pca_dir,pattern="sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_CompLoadingImg_.*.rst$",full.names=T)
 
 pca_fname1 <- file.path(in_dir,"sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_DIF.ods") #ods file with loadings and variance
 eot_fname1 <- file.path(in_dir,"eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std.ods")
 
+## Contains teleconnection indices assembled
 indices_fname <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/data/indices_new.xls"
 
 telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
-#mode_list_MEOT<-c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
-#mode_list_MEOT<-paste("MEOT",1:25,sep="")
-#c("MEOT1","MEOT3", "MEOT4","MEOT7","MEOT10","MEOT15","MEOT16")
 
-#mode_list_PCA<-c("MSSA1","MSSA2","MSSA3","MSSA4","MSSA5","MSSA6")    
-#mode_list_PCA<-paste("MSSA",1:15,sep="")
-
-lag_window<-13
+#lag_window<-13 #no lag window here
 
 ########################################################
 ##############  Start of th script  ##############
 
 ### PART 0: READ IN DATASETS RELATED TO TELECONNECTION AND PREVIOUS LOADINGS
-#http://geog.uoregon.edu/bartlein/courses/geog607/Rmd/netCDF_01.htm
-
-
-#scrping tables from html pages
-#http://stackoverflow.com/questions/1395528/scraping-html-tables-into-r-data-frames-using-the-xml-package
-
-### GET DATA: 1982-2015 EOT and PCA
-
-pca_dat <- read_ods(pca_fname1,sheet="pca_loadings")
-#test <- read_ods(eot_fname1,sheet="pca_loadings")
-names(pca_dat)[1] <- "fnames"
-names(pca_dat)[2:ncol(pca_dat)] <- paste0("pc_",1:20)
-test <- subset(pca_dat,select=paste0("pc_",1:20))
-test<-lapply(test,FUN=convert_to_numeric)
-test<- do.call(cbind,test)
-pca_dat <- as.data.frame(test)
-
-eot_dat <- read_ods(eot_fname1,sheet="eot_loadings")
-#test <- read_ods(eot_fname1,sheet="pca_loadings")
-test <- subset(eot_dat,select=paste0("eot",1:20))
-test<-lapply(test,FUN=convert_to_numeric)
-test<- do.call(cbind,test)
-eot_dat <- as.data.frame(test)
 
 #Import results teleconneciton indices processed by Elsa 
 
@@ -165,27 +137,57 @@ d_z2<-zoo(dat,dseq)
 time(d_z)  #no time stamp??
 time(d_z2) 
 
-### NOW CARRY OUT CORRELATION BETWEEN INDICES AND COMPONENTS
+### GET DATA: 1982-2015 EOT and PCA S mode
+
+pca_dat <- read_ods(pca_fname1,sheet="pca_loadings")
+names(pca_dat)[1] <- "fnames"
+names(pca_dat)[2:ncol(pca_dat)] <- paste0("pc_",1:20)
+test <- subset(pca_dat,select=paste0("pc_",1:20))
+test<-lapply(test,FUN=convert_to_numeric)
+test<- do.call(cbind,test)
+pca_dat <- as.data.frame(test)
+pca_dat_dz <- zoo(pca_dat,dseq) #create zoo object from data.frame and date sequence object
+time(pca_dat_dz)  #no time stamp??
+
+eot_dat <- read_ods(eot_fname1,sheet="eot_loadings")
+#test <- read_ods(eot_fname1,sheet="pca_loadings")
+test <- subset(eot_dat,select=paste0("eot",1:20))
+test<-lapply(test,FUN=convert_to_numeric)
+test<- do.call(cbind,test)
+eot_dat <- as.data.frame(test)
+eot_dat_dz <- zoo(eot_dat,dseq) #create zoo object from data.frame and date sequence object
+
+#### Plot all the teleconnection indices and components loadings from EOT and PCA S mode
+plot(d_z2)
+plot(eot_dat_dz)
+plot(pca_dat_dz)
+
+###########################
+#### PART 1: NOW CARRY OUT CORRELATION BETWEEN INDICES AND COMPONENTS
 
 #cor_series_fun(ts1,ts2,fig=F,out_suffix)
 #debug(cor_series_fun)
 cor_pca_df <- cor_series_fun(ts1=pca_dat,ts2=dat_indices,fig=F,out_suffix)
 write.table(cor_pca_df ,file=file.path(out_dir,paste0("cor_pca_df","_",out_suffix,".txt")),sep=",")
 
-barplot(as.numeric(diag(as.matrix(cor_pca_df))),
-        ylim=c(-1,1),
-        names.arg=1:20) #Okay very similar results
-
 cor_eot_df <- cor_series_fun(ts1=eot_dat,ts2=dat_indices,fig=F,out_suffix)
 write.table(cor_eot_df ,file=file.path(out_dir,paste0("cor_eot_df","_",out_suffix,".txt")),sep=",")
 
-barplot(as.numeric(diag(as.matrix(cor_eot_df))),
-        ylim=c(-1,1),
-        names.arg=1:20) #Okay very similar results
+############################
+#### PART 2: Analyses and plots of results 
 
 ### generate barplot for each components + indices?
 ### Generate maps+ temporal loadings figures for each (pca and eot!!)
 ### Generate maps+ barplots?
+## Get scree plots from reading variance and compare results!!!
+##
+
+barplot(as.numeric(diag(as.matrix(cor_eot_df))),
+        ylim=c(-1,1),
+        names.arg=1:20) #Okay very similar results
+barplot(as.numeric(diag(as.matrix(cor_pca_df))),
+        ylim=c(-1,1),
+        names.arg=1:20) #Okay very similar results
 
 ########################## END OF SCRIPT ###############################################
 
