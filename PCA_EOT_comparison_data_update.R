@@ -276,62 +276,89 @@ dev.off()
 
 #data_plot<-cbind(as.vector(mssa_obj$extremum[pos1]),as.vector(mssa_obj$extremum[pos2]))
 
-### Make this a function now:
-
-i<-1 #right now works on columns only
-names_ref <- names(cor_eot_df)[i]
-names_ind <- rownames(cor_eot_df)
-
-data_plot <- as.numeric((cor_eot_df[,i])) # make sure it is numeric
-png(plot_name)
-heights<-as.matrix(t(data_plot))
-#barplot(heights)
-barplot(heights,     #data to plot
-        #main=paste(names(data_plot)[pos1]," and ",names(data_plot)[pos2],sep=""),
-        main= names_ref,
-        names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
-        #beside=TRUE,                         # see two barplots for comparisons...
-        xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
-        ylab="Correlation",font.lab=2,
-        #col=c("blue","red"), ylim=c(-1,1))
-        col=c("blue"), ylim=c(-1,1))
-grid(nx=12,ny=10)      
-
-#legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.9, fill=c("blue","red"),bty="n")
-legend("topright",legend=c(names_ref), cex=0.9, fill=c("blue"),bty="n")
-
-box()
-dev.off()
 
 ### Generate for comparison between EOT and PCA??
 
-i<-1 #right now works on columns only
-names_ref1 <- names(cor_eot_df)[i]
-names_ref2 <- names(cor_pca_df)[i]
-names_ind <- rownames(cor_eot_df)
+#debug(generate_barplot_fun)
+test <- generate_barplot_comparison_fun(df1=cor_eot_df,df2=cor_pca_df,out_suffix=out_suffix ,col_palette=NULL,out_dir=NULL)
+  
+generate_barplot_comparison_fun <- function(df1,df2,out_suffix,col_palette=NULL,out_dir=NULL){
+  
+  #df1: data.frame 1 containing correlation values related to indices/variables
+  #df2: data.frame 2 (e.g. pca/eot) containing correlation values related to indices/variables (e.g. telconnections)
+  
+  #i<-1 #right now works on columns only
+  lf_png <- vector("list",length=ncol(df1))
+    
+  for(i in 1:ncol(df1)){
+    
+    #names_ref1 <- names(cor_eot_df)[i]
+    #names_ref2 <- names(cor_pca_df)[i]
+    #names_ind <- rownames(cor_eot_df)
+    names_ref1 <- names(df1)[i]
+    names_ref2 <- names(df2)[i]
+    names_ind <- rownames(df2)  
+    data_plot <- (cbind(as.numeric(df1[,i]),as.numeric(df2[,i]))) # make sure it is numeric
+    #data_plot <- (cbind(as.numeric(cor_eot_df[,i]),as.numeric(cor_pca_df[,i]))) # make sure it is numeric
+    
+    #data_plot <- as.numeric((cor_eot_df[,i])) # make sure it is numeric
+    
+    png_file_name <- paste(names_ref1,"_",names_ref2,"_",out_suffix,".png",sep="")
+    
+    png(png_file_name)
+    
+    heights<-as.matrix(t(data_plot))
+    barplot(heights,     #data to plot
+            main=paste(names_ref1," and ",names_ref2,sep=""),
+            #main= names_ref,
+            names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+            beside=TRUE,                         # see two barplots for comparisons...
+            xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
+            ylab="Correlation",font.lab=2,
+            col=c("blue","red"), ylim=c(-1,1))
+    #col=c("blue"), ylim=c(-1,1))
+    grid(nx=12,ny=10)      
+    
+    legend("topright",legend=c(names_ref1,names_ref2), cex=0.9, fill=c("blue","red"),bty="n")
+    
+    box()
+    dev.off()
+    
+    lf_png[[i]] <- png_file_name
+    
+  }
+  
+  ## return list of files created
+  return(lf_png)
+}
 
-data_plot <- (cbind(as.numeric(cor_eot_df[,i]),as.numeric(cor_pca_df[,i]))) # make sure it is numeric
-#data_plot <- as.numeric((cor_eot_df[,i])) # make sure it is numeric
 
-png(plot_name)
-heights<-as.matrix(t(data_plot))
-#barplot(heights)
-barplot(heights,     #data to plot
-        main=paste(names_ref1," and ",names_ref2,sep=""),
-        #main= names_ref,
-        names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
-        beside=TRUE,                         # see two barplots for comparisons...
-        xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
-        ylab="Correlation",font.lab=2,
-        col=c("blue","red"), ylim=c(-1,1))
-        #col=c("blue"), ylim=c(-1,1))
-grid(nx=12,ny=10)      
+### Make this a function now:
 
-#legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.9, fill=c("blue","red"),bty="n")
-legend("topright",legend=c(names_ref1,names_ref2), cex=0.9, fill=c("blue","red"),bty="n")
-
-box()
-dev.off()
+# i<-1 #right now works on columns only
+# names_ref <- names(cor_eot_df)[i]
+# names_ind <- rownames(cor_eot_df)
+# 
+# data_plot <- as.numeric((cor_eot_df[,i])) # make sure it is numeric
+# png(plot_name)
+# heights<-as.matrix(t(data_plot))
+# #barplot(heights)
+# barplot(heights,     #data to plot
+#         #main=paste(names(data_plot)[pos1]," and ",names(data_plot)[pos2],sep=""),
+#         main= names_ref,
+#         names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+#         #beside=TRUE,                         # see two barplots for comparisons...
+#         xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
+#         ylab="Correlation",font.lab=2,
+#         #col=c("blue","red"), ylim=c(-1,1))
+#         col=c("blue"), ylim=c(-1,1))
+# grid(nx=12,ny=10)      
+# 
+# #legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.9, fill=c("blue","red"),bty="n")
+# legend("topright",legend=c(names_ref), cex=0.9, fill=c("blue"),bty="n")
+# 
+# box()
+# dev.off()
 
 
 ########################## END OF SCRIPT ###############################################
