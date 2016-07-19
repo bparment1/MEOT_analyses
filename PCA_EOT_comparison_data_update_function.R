@@ -7,7 +7,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/15/2016 
-#DATE MODIFIED: 07/15/2016
+#DATE MODIFIED: 07/19/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -172,6 +172,8 @@ cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
       
       cor_val <- cor(tfs1,tfs2)
       
+      ### add this as time series later?
+      
       if (fig=="TRUE"){
         plot_name<-paste(names_tfs1, "and",names_tfs2,"scatter_plot_cor_analysis",sep="_")
         png(paste(plot_name,"_",out_suffix,".png", sep=""))
@@ -180,8 +182,11 @@ cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
              xlab=names_tfs1)
         dev.off()
         
+        ## Temporal profiles of both time series
         y_range <- range(c(tfs1,tfs2))
         plot_name<-paste(names_tfs1, "and",names_tfs2,"series_profile_cor_analysis",sep="_")
+        
+        png(paste(plot_name,"_",out_suffix,".png", sep=""))
         plot(tfs1, main= paste(names_tfs1, "and", names_tfs2,"cor analysis",sep=" "), 
              ylab="Series",
              xlab="time steps",
@@ -191,6 +196,13 @@ cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
         plot(tfs2, type = "l", col="blue", axes = FALSE, bty = "n", xlab = "", ylab = "")
         axis(side=4, at = pretty(range(tfs2)))
         mtext("z", side=4, line=3)
+        
+        legend("topleft",legend=c(names_tfs1,names_tfs2), cex=0.8, 
+               #col=c("blue","darkgreen"),
+               col=c("black","blue"),
+               lty=c(1,2),lwd=2,
+               bty="n")  #lwd=line width
+        
         #lines(tfs2, col="blue")
         
         dev.off()
@@ -199,13 +211,14 @@ cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
       
       ######### NOW FIND THE m
       
-      cor_table[i,j] <- format(cor_val,digits=4)
+      #cor_table[i,j] <- format(cor_val,digits=4)
+      cor_table[i,j] <- as.numeric((format(cor_val,digits=4)))
       
       ##Keep ccf lag somewhere
       
     }
   }
-  
+  #browser()
   cor_table <-as.data.frame(cor_table)
   names(cor_table) <- names(ts2)
   rownames(cor_table)<- names(ts1)
