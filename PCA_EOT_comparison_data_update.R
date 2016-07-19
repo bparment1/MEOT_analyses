@@ -41,7 +41,7 @@ library(plyr)                              # contains "rename","revalue" and oth
 ###### Functions  used in the script  ##########
 
 infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-                             "PCA_EOT_comparison_data_update_function_07152016.R")
+                             "PCA_EOT_comparison_data_update_function_07192016.R")
 source(infile1_function)
 
 #############################################
@@ -170,14 +170,18 @@ plot(pca_dat_dz)
 
 #cor_series_fun(ts1,ts2,fig=F,out_suffix)
 #debug(cor_series_fun)
-cor_pca_df <- cor_series_fun(ts1=pca_dat,ts2=dat_indices,fig=F,out_suffix)
+#infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
+#                              "PCA_EOT_comparison_data_update_function_07192016.R")
+#source(infile1_function)
+
+cor_pca_df <- cor_series_fun(ts1=dat_indices,ts2=pca_dat,fig=F,out_suffix)
 
 write.table(cor_pca_df ,file=file.path(out_dir,paste0("cor_pca_df","_",out_suffix,".txt")),sep=",")
 
-cor_eot_df <- cor_series_fun(ts1=eot_dat,ts2=dat_indices,fig=F,out_suffix)
-test <-lapply(cor_eot_df,FUN=convert_to_numeric)
-test<- do.call(cbind,test)
-cor_eot_df <- as.data.frame(test)
+cor_eot_df <- cor_series_fun(ts1=dat_indices,ts2=eot_dat,fig=F,out_suffix)
+#test <-lapply(cor_eot_df,FUN=convert_to_numeric)
+#test<- do.call(cbind,test)
+#cor_eot_df <- as.data.frame(test)
 
 write.table(cor_eot_df ,file=file.path(out_dir,paste0("cor_eot_df","_",out_suffix,".txt")),sep=",")
 
@@ -200,14 +204,62 @@ plot(r_mask)
 eot_s <- stack(lf_eot)
 eot_s <- mask(eot_s,r_mask)
 names(eot_s) <- paste0("eot_",1:20)
-plot(eot_s)
+plot(eot_s,col=matlab.like(256))
+
+
+res_pix <- 600 #it will be time 2
+res_pix <- 500
+col_mfrow <- 5
+row_mfrow <- 4
+
+png_file_name <- file.path(out_dir,paste0("figure_spatial_pattern_levelplot_eot_stack_","comp_1_20_",out_suffix,".png"))
+png(png_file_name,width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+#par(mfrow=c(row_mfrow,col_mfrow))
+#layout=c(3, 2)
+layout_m <- c(col_mfrow,row_mfrow)
+
+temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+title_plot<-paste("EOT", "spatial sequence",sep=" ")
+#levelplot(meot_rast_m,col.regions=temp.colors)
+#levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=4)
+levelplot(eot_s,main=title_plot, layout=layout_m,
+          ylab=NULL,xlab=NULL,
+          par.settings = list(axis.text = list(font = 2, cex = 1.5),
+                              par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+          col.regions=temp.colors,at=seq(-1,1,by=0.02))
+dev.off()
 
 #### PCA
 
 pca_s <- stack(lf_pca)
 pca_s <- mask(pca_s,r_mask)
 names(pca_s) <- paste0("pca_",1:20)
-plot(pca_s)
+plot(pca_s,col=matlab.like(256))
+levelplot(pca_s,re=matlab.like(256))
+
+res_pix <- 600 #it will be time 2
+res_pix <- 500
+col_mfrow <- 5
+row_mfrow <- 4
+
+png_file_name <- file.path(out_dir,paste0("figure_spatial_pattern_levelplot_pca_stack_","comp_1_20_",out_suffix,".png"))
+png(png_file_name,width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+#par(mfrow=c(row_mfrow,col_mfrow))
+#layout=c(3, 2)
+layout_m <- c(col_mfrow,row_mfrow)
+
+temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+title_plot<-paste("PCA", "spatial sequence",sep=" ")
+#levelplot(meot_rast_m,col.regions=temp.colors)
+#levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=4)
+levelplot(pca_s,main=title_plot, layout=layout_m,
+          ylab=NULL,xlab=NULL,
+          par.settings = list(axis.text = list(font = 2, cex = 1.5),
+                              par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+          col.regions=temp.colors,at=seq(-1,1,by=0.02))
+dev.off()
 
 ## can show there is more autocorrelation in EOTs?
 ## can show there is less variance in EOTs?
@@ -215,35 +267,69 @@ plot(pca_s)
 ###############
 #### Plot temporal profiles patterns using loadings 
 
-barplot(as.numeric(diag(as.matrix(cor_eot_df))),
-        ylim=c(-1,1),
-        names.arg=1:20) #Okay very similar results
-barplot(as.numeric(diag(as.matrix(cor_pca_df))),
-        ylim=c(-1,1),
-        names.arg=1:20) #Okay very similar results
+### Fix correlation function
 
-pos1<-match(list_fig_MSSA[[i]][[1]],names(mssa_obj$extremum))
-pos2<-match(list_fig_MSSA[[i]][[2]],names(mssa_obj$extremum))
 
-plot_name<- paste(list_fig_MSSA[[i]][[3]],"_",out_prefix,".png",sep="")
-names_ind <- c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMO","QBO")
-names_ind <- telind
+#plot_name<- paste(list_fig_MSSA[[i]][[3]],"_",out_prefix,".png",sep="")
+#names_ind <- c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMO","QBO")
+#names_ind <- telind
 
-data_plot<-cbind(as.vector(mssa_obj$extremum[pos1]),as.vector(mssa_obj$extremum[pos2]))
+#data_plot<-cbind(as.vector(mssa_obj$extremum[pos1]),as.vector(mssa_obj$extremum[pos2]))
 
-data_plot <- as.numeric(as.character(cor_eot_df[1,]))
+### Make this a function now:
+
+i<-1 #right now works on columns only
+names_ref <- names(cor_eot_df)[i]
+names_ind <- rownames(cor_eot_df)
+
+data_plot <- as.numeric((cor_eot_df[,i])) # make sure it is numeric
 png(plot_name)
 heights<-as.matrix(t(data_plot))
-barplot(heights)
+#barplot(heights)
 barplot(heights,     #data to plot
         #main=paste(names(data_plot)[pos1]," and ",names(data_plot)[pos2],sep=""),
+        main= names_ref,
+        names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+        #beside=TRUE,                         # see two barplots for comparisons...
+        xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
+        ylab="Correlation",font.lab=2,
+        #col=c("blue","red"), ylim=c(-1,1))
+        col=c("blue"), ylim=c(-1,1))
+grid(nx=12,ny=10)      
+
+#legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.9, fill=c("blue","red"),bty="n")
+legend("topright",legend=c(names_ref), cex=0.9, fill=c("blue"),bty="n")
+
+box()
+dev.off()
+
+### Generate for comparison between EOT and PCA??
+
+i<-1 #right now works on columns only
+names_ref1 <- names(cor_eot_df)[i]
+names_ref2 <- names(cor_pca_df)[i]
+names_ind <- rownames(cor_eot_df)
+
+data_plot <- (cbind(as.numeric(cor_eot_df[,i]),as.numeric(cor_pca_df[,i]))) # make sure it is numeric
+#data_plot <- as.numeric((cor_eot_df[,i])) # make sure it is numeric
+
+png(plot_name)
+heights<-as.matrix(t(data_plot))
+#barplot(heights)
+barplot(heights,     #data to plot
+        main=paste(names_ref1," and ",names_ref2,sep=""),
+        #main= names_ref,
         names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
         beside=TRUE,                         # see two barplots for comparisons...
         xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
-        ylab="Lag crosscorrelation",font.lab=2,
+        ylab="Correlation",font.lab=2,
         col=c("blue","red"), ylim=c(-1,1))
+        #col=c("blue"), ylim=c(-1,1))
 grid(nx=12,ny=10)      
-legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.9, fill=c("blue","red"),bty="n")
+
+#legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.9, fill=c("blue","red"),bty="n")
+legend("topright",legend=c(names_ref1,names_ref2), cex=0.9, fill=c("blue","red"),bty="n")
+
 box()
 dev.off()
 
