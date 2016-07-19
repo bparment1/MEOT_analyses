@@ -7,7 +7,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/11/2016 
-#DATE MODIFIED: 07/18/2016
+#DATE MODIFIED: 07/19/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #           
@@ -92,8 +92,8 @@ pca_dir <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/EOT82_1
 
 lf_sst <- list.files(path=file.path(in_dir,SST_dir),pattern=".rst$",full.names=T)
 ### Get EOT and PCA raster images here!!
-lf_eot <- list.files(path=eot_dir,pattern="eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std_.*._R.rst$",full.names=T)
-lf_pca <- list.files(path=pca_dir,pattern="sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_CompLoadingImg_.*.rst$",full.names=T)
+lf_eot <- mixedsort(list.files(path=eot_dir,pattern="eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std_.*._R.rst$",full.names=T))
+lf_pca <- mixedsort(list.files(path=pca_dir,pattern="sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_CompLoadingImg_.*.rst$",full.names=T))
 
 pca_fname1 <- file.path(in_dir,"sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_DIF.ods") #ods file with loadings and variance
 eot_fname1 <- file.path(in_dir,"eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std.ods")
@@ -108,7 +108,8 @@ telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","Q
 ########################################################
 ##############  Start of th script  ##############
 
-### PART 0: READ IN DATASETS RELATED TO TELECONNECTION AND PREVIOUS LOADINGS
+#########################
+#### PART 0: READ IN DATASETS RELATED TO TELECONNECTION AND PREVIOUS LOADINGS
 
 #Import results teleconneciton indices processed by Elsa 
 
@@ -137,6 +138,8 @@ d_z2<-zoo(dat,dseq)
 time(d_z)  #no time stamp??
 time(d_z2) 
 
+indices_dat_dz <- zoo(dat_indices,dseq) #create zoo object from data.frame and date sequence object
+
 ### GET DATA: 1982-2015 EOT and PCA S mode
 
 pca_dat <- read_ods(pca_fname1,sheet="pca_loadings")
@@ -158,7 +161,7 @@ eot_dat <- as.data.frame(test)
 eot_dat_dz <- zoo(eot_dat,dseq) #create zoo object from data.frame and date sequence object
 
 #### Plot all the teleconnection indices and components loadings from EOT and PCA S mode
-plot(d_z2)
+plot(indices_dat_dz)
 plot(eot_dat_dz)
 plot(pca_dat_dz)
 
@@ -168,9 +171,14 @@ plot(pca_dat_dz)
 #cor_series_fun(ts1,ts2,fig=F,out_suffix)
 #debug(cor_series_fun)
 cor_pca_df <- cor_series_fun(ts1=pca_dat,ts2=dat_indices,fig=F,out_suffix)
+
 write.table(cor_pca_df ,file=file.path(out_dir,paste0("cor_pca_df","_",out_suffix,".txt")),sep=",")
 
 cor_eot_df <- cor_series_fun(ts1=eot_dat,ts2=dat_indices,fig=F,out_suffix)
+test <-lapply(cor_eot_df,FUN=convert_to_numeric)
+test<- do.call(cbind,test)
+cor_eot_df <- as.data.frame(test)
+
 write.table(cor_eot_df ,file=file.path(out_dir,paste0("cor_eot_df","_",out_suffix,".txt")),sep=",")
 
 ############################
@@ -182,12 +190,63 @@ write.table(cor_eot_df ,file=file.path(out_dir,paste0("cor_eot_df","_",out_suffi
 ## Get scree plots from reading variance and compare results!!!
 ##
 
+###############
+#### Plot spatial pattern using score maps
+
+#### EOT
+r_mask <- raster(r_mask_filename)
+plot(r_mask)
+
+eot_s <- stack(lf_eot)
+eot_s <- mask(eot_s,r_mask)
+names(eot_s) <- paste0("eot_",1:20)
+plot(eot_s)
+
+#### PCA
+
+pca_s <- stack(lf_pca)
+pca_s <- mask(pca_s,r_mask)
+names(pca_s) <- paste0("pca_",1:20)
+plot(pca_s)
+
+## can show there is more autocorrelation in EOTs?
+## can show there is less variance in EOTs?
+
+###############
+#### Plot temporal profiles patterns using loadings 
+
 barplot(as.numeric(diag(as.matrix(cor_eot_df))),
         ylim=c(-1,1),
         names.arg=1:20) #Okay very similar results
 barplot(as.numeric(diag(as.matrix(cor_pca_df))),
         ylim=c(-1,1),
         names.arg=1:20) #Okay very similar results
+
+pos1<-match(list_fig_MSSA[[i]][[1]],names(mssa_obj$extremum))
+pos2<-match(list_fig_MSSA[[i]][[2]],names(mssa_obj$extremum))
+
+plot_name<- paste(list_fig_MSSA[[i]][[3]],"_",out_prefix,".png",sep="")
+names_ind <- c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMO","QBO")
+names_ind <- telind
+
+data_plot<-cbind(as.vector(mssa_obj$extremum[pos1]),as.vector(mssa_obj$extremum[pos2]))
+
+data_plot <- as.numeric(as.character(cor_eot_df[1,]))
+png(plot_name)
+heights<-as.matrix(t(data_plot))
+barplot(heights)
+barplot(heights,     #data to plot
+        #main=paste(names(data_plot)[pos1]," and ",names(data_plot)[pos2],sep=""),
+        names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+        beside=TRUE,                         # see two barplots for comparisons...
+        xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
+        ylab="Lag crosscorrelation",font.lab=2,
+        col=c("blue","red"), ylim=c(-1,1))
+grid(nx=12,ny=10)      
+legend("topright",legend=c(list_fig_MSSA[[i]][[1]],list_fig_MSSA[[i]][[2]]), cex=0.9, fill=c("blue","red"),bty="n")
+box()
+dev.off()
+
 
 ########################## END OF SCRIPT ###############################################
 
