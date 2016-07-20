@@ -193,6 +193,16 @@ cor_eot_pca_df <- cor_series_fun(ts1=pca_dat,ts2=eot_dat,fig=F,out_suffix)
 
 write.table(cor_eot_pca_df ,file=file.path(out_dir,paste0("correlation_between_eot_and_pca_cor_eot_df","_",out_suffix,".txt")),sep=",")
 
+diag_m <- diag(as.matrix(cor_eot_pca_df))
+
+##Quick plot of the diagonal
+barplot(diag_m,ylim=c(-1,1),
+        names.arg=1:20,
+        main="PCA-EOT correlation for the first 20 components")
+
+## Visualize the correlation matrix between pca and eot as an image
+image(as.matrix(cor_eot_pca_df))
+
 ############################
 #### PART 2: Analyses and plots of results 
 
