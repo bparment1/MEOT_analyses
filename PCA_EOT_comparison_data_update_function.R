@@ -7,7 +7,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/15/2016 
-#DATE MODIFIED: 07/19/2016
+#DATE MODIFIED: 07/20/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -69,14 +69,22 @@ convert_to_numeric <-function(x){
 }
 
 
-crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_prefix){
+crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suffix){
   #This function crosss correlates between two sets of time series given some lag window.
-  #Arguments:
+  #The inputs are time series objects of the type zoo.
+  #
+  #Input Arguments:
   #1)telind: time series 1 as character vector
   #2)modelist: time series 2 as character vector
   #3)d_z: zoo object 
   #4)lag_window:
-  #5)fig:
+  #5)fig: TRUE or FALSE, if TRUE generate crossorrrelation figure
+  #6)out_suffix
+  ##AUTHOR: Benoit Parmentier                                                                       #
+  #DATE CREATED:12/15/2013 
+  #DATE MODIFIED: 07/29/2016
+  ###Comments
+  ### Last update on 07/29/2016, this needs improvement!!
   
   lag_table_ext<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
   lag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
@@ -88,7 +96,6 @@ crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_pref
   
   #lag_cross_cor_PCA_m<-array(data=NA,nrow=length(lag_m),ncol=length(mode_list))
   for (i in 1:length(telind)){
-    telindex<-telind[i]
     pos1<-match(telindex,names(d_z))
     #retain ccf!!!
     for (j in 1:length(mode_list)){
@@ -101,7 +108,7 @@ crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_pref
       
       if (fig=="TRUE"){
         plot_name<-paste(telindex, "and", mode_n,"lag analysis",sep="_")
-        png(paste(plot_name,"_",out_prefix,".png", sep=""))
+        png(paste(plot_name,"_",out_suffix,".png", sep=""))
         plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
              xlab="Lag (month)", ylim=c(-1,1))
         dev.off()
@@ -130,26 +137,26 @@ crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_pref
   lag_table_ext<-as.data.frame(lag_table_ext)
   names(lag_table_ext)<-mode_list
   rownames(lag_table_ext)<-telind
-  file_name<-paste("lag_table_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
+  file_name<-paste("lag_table_extremum_window_", lag_window,"_",out_suffix,".txt",sep="")
   write.table(lag_table_ext,file=file_name,sep=",")
   
   lag_table_lag<-as.data.frame(lag_table_lag)
   names(lag_table_lag)<-mode_list
   rownames(lag_table_lag)<-telind
-  file_name<-paste("lag_table_lag_extremum_window_", lag_window,"_",out_prefix,".txt",sep="")
+  file_name<-paste("lag_table_lag_extremum_window_", lag_window,"_",out_suffix,".txt",sep="")
   write.table(lag_table_lag,file=file_name,sep=",")
   
   lag_table_text<-as.data.frame(lag_table_text)
   names(lag_table_text)<-mode_list
   rownames(lag_table_text)<-telind
-  file_name<-paste("lag_table_lag_ext_text", lag_window,"_",out_prefix,".txt",sep="")
+  file_name<-paste("lag_table_lag_ext_text", lag_window,"_",out_suffix,".txt",sep="")
   write.table(lag_table_text,file=file_name,sep=",")
   
   #create return object
   
   crosscor_obj<-list(lag_table_ext,lag_table_lag,lag_table_text)
   names(crosscor_obj)<-c("extremum","lag_ext","text")
-  file_name<-paste("crosscor_obj_lag_analysis_", lag_window,"_",out_prefix,".RData",sep="")
+  file_name<-paste("crosscor_obj_lag_analysis_", lag_window,"_",out_suffix,".RData",sep="")
   save(crosscor_obj,file=file_name)
   
   return(crosscor_obj)
@@ -170,8 +177,8 @@ cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
       tfs2 <- ts2[,j]
       names_tfs2 <- names(ts2)[j]
       
-      cor_val <- cor(tfs1,tfs2)
-      
+      #cor_val <- cor(tfs1,tfs2,use="complete.obs")
+      cor_val <- cor(tfs1,tfs2,use="na.or.complete") # casewise deletion of NA and assign NA if no complete case for a vector/matrix column
       ### add this as time series later?
       
       if (fig=="TRUE"){
@@ -229,10 +236,55 @@ cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
   
 }
 
-
-#infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-#                             "EOT_PCA_rotation_functions_01092016.R")
-#source(infile1_function)
+generate_barplot_comparison_fun <- function(df1,df2,out_suffix,col_palette=NULL,out_dir=NULL){
+  
+  #df1: data.frame 1 containing correlation values related to indices/variables
+  #df2: data.frame 2 (e.g. pca/eot) containing correlation values related to indices/variables (e.g. telconnections)
+  
+  #i<-1 #right now works on columns only
+  lf_png <- vector("list",length=ncol(df1))
+  
+  for(i in 1:ncol(df1)){
+    
+    #names_ref1 <- names(cor_eot_df)[i]
+    #names_ref2 <- names(cor_pca_df)[i]
+    #names_ind <- rownames(cor_eot_df)
+    names_ref1 <- names(df1)[i]
+    names_ref2 <- names(df2)[i]
+    names_ind <- rownames(df2)  
+    data_plot <- (cbind(as.numeric(df1[,i]),as.numeric(df2[,i]))) # make sure it is numeric
+    #data_plot <- (cbind(as.numeric(cor_eot_df[,i]),as.numeric(cor_pca_df[,i]))) # make sure it is numeric
+    
+    #data_plot <- as.numeric((cor_eot_df[,i])) # make sure it is numeric
+    
+    png_file_name <- paste(names_ref1,"_",names_ref2,"_",out_suffix,".png",sep="")
+    
+    png(png_file_name)
+    
+    heights<-as.matrix(t(data_plot))
+    barplot(heights,     #data to plot
+            main=paste(names_ref1," and ",names_ref2,sep=""),
+            #main= names_ref,
+            names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+            beside=TRUE,                         # see two barplots for comparisons...
+            xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
+            ylab="Correlation",font.lab=2,
+            col=c("blue","red"), ylim=c(-1,1))
+    #col=c("blue"), ylim=c(-1,1))
+    grid(nx=12,ny=10)      
+    
+    legend("topright",legend=c(names_ref1,names_ref2), cex=0.9, fill=c("blue","red"),bty="n")
+    
+    box()
+    dev.off()
+    
+    lf_png[[i]] <- png_file_name
+    
+  }
+  
+  ## return list of files created
+  return(lf_png)
+}
 
 
 ########################## END OF SCRIPT #########################
