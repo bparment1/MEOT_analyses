@@ -7,7 +7,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/11/2016 
-#DATE MODIFIED: 07/19/2016
+#DATE MODIFIED: 07/20/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #           
@@ -41,7 +41,7 @@ library(plyr)                              # contains "rename","revalue" and oth
 ###### Functions  used in the script  ##########
 
 infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-                             "PCA_EOT_comparison_data_update_function_07192016.R")
+                             "PCA_EOT_comparison_data_update_function_07202016.R")
 source(infile1_function)
 
 #############################################
@@ -118,11 +118,13 @@ names(dat)[1:2] <- c("year","month")
 dat <- rename(dat, c("QBO_30_original"="QBO")) #from plyr package
 
 dat_indices <- subset(dat,select=telind)
-
+View(dat_indices)
+     
 ##Not elegant but works for now...
 test<-lapply(dat_indices ,FUN=convert_to_numeric)
 test<- do.call(cbind,test)
 dat_indices  <- as.data.frame(test)
+dat_indices[dat_indices==-999] <- NA
 
 #Creating time series objects
 d_ts<-ts(data=dat,start=c(1982,1), end=c(2015,12), frequency=12, names=names(dat))
@@ -184,6 +186,12 @@ cor_eot_df <- cor_series_fun(ts1=dat_indices,ts2=eot_dat,fig=F,out_suffix)
 #cor_eot_df <- as.data.frame(test)
 
 write.table(cor_eot_df ,file=file.path(out_dir,paste0("cor_eot_df","_",out_suffix,".txt")),sep=",")
+
+### Correlation between EOT and PCA
+
+cor_eot_pca_df <- cor_series_fun(ts1=pca_dat,ts2=eot_dat,fig=F,out_suffix)
+
+write.table(cor_eot_pca_df ,file=file.path(out_dir,paste0("correlation_between_eot_and_pca_cor_eot_df","_",out_suffix,".txt")),sep=",")
 
 ############################
 #### PART 2: Analyses and plots of results 
@@ -269,69 +277,32 @@ dev.off()
 
 ### Fix correlation function
 
-
 #plot_name<- paste(list_fig_MSSA[[i]][[3]],"_",out_prefix,".png",sep="")
 #names_ind <- c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMO","QBO")
 #names_ind <- telind
 
 #data_plot<-cbind(as.vector(mssa_obj$extremum[pos1]),as.vector(mssa_obj$extremum[pos2]))
 
-
 ### Generate for comparison between EOT and PCA??
 
 #debug(generate_barplot_fun)
-test <- generate_barplot_comparison_fun(df1=cor_eot_df,df2=cor_pca_df,out_suffix=out_suffix ,col_palette=NULL,out_dir=NULL)
-  
-generate_barplot_comparison_fun <- function(df1,df2,out_suffix,col_palette=NULL,out_dir=NULL){
-  
-  #df1: data.frame 1 containing correlation values related to indices/variables
-  #df2: data.frame 2 (e.g. pca/eot) containing correlation values related to indices/variables (e.g. telconnections)
-  
-  #i<-1 #right now works on columns only
-  lf_png <- vector("list",length=ncol(df1))
-    
-  for(i in 1:ncol(df1)){
-    
-    #names_ref1 <- names(cor_eot_df)[i]
-    #names_ref2 <- names(cor_pca_df)[i]
-    #names_ind <- rownames(cor_eot_df)
-    names_ref1 <- names(df1)[i]
-    names_ref2 <- names(df2)[i]
-    names_ind <- rownames(df2)  
-    data_plot <- (cbind(as.numeric(df1[,i]),as.numeric(df2[,i]))) # make sure it is numeric
-    #data_plot <- (cbind(as.numeric(cor_eot_df[,i]),as.numeric(cor_pca_df[,i]))) # make sure it is numeric
-    
-    #data_plot <- as.numeric((cor_eot_df[,i])) # make sure it is numeric
-    
-    png_file_name <- paste(names_ref1,"_",names_ref2,"_",out_suffix,".png",sep="")
-    
-    png(png_file_name)
-    
-    heights<-as.matrix(t(data_plot))
-    barplot(heights,     #data to plot
-            main=paste(names_ref1," and ",names_ref2,sep=""),
-            #main= names_ref,
-            names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
-            beside=TRUE,                         # see two barplots for comparisons...
-            xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
-            ylab="Correlation",font.lab=2,
-            col=c("blue","red"), ylim=c(-1,1))
-    #col=c("blue"), ylim=c(-1,1))
-    grid(nx=12,ny=10)      
-    
-    legend("topright",legend=c(names_ref1,names_ref2), cex=0.9, fill=c("blue","red"),bty="n")
-    
-    box()
-    dev.off()
-    
-    lf_png[[i]] <- png_file_name
-    
-  }
-  
-  ## return list of files created
-  return(lf_png)
-}
+lf_barplot_comparison <- generate_barplot_comparison_fun(df1=cor_eot_df,df2=cor_pca_df,out_suffix=out_suffix ,col_palette=NULL,out_dir=NULL)
 
+###############
+#### Generate maps+ temporal loadings figures for each (pca and eot!!)
+
+#Does it have more regional coherence compared to PCA hence it may work more for predicting specific
+#variables locally?
+
+test < - cor(as.matrix(pca_dat),as.matrix(eot_dat),use="na.or.complete")
+
+##############
+#### SCREE PLOT AND VARIANCE
+
+#Get scree plots from reading variance and compare results!!!
+
+
+########################## END OF SCRIPT ###############################################
 
 ### Make this a function now:
 
@@ -359,7 +330,3 @@ generate_barplot_comparison_fun <- function(df1,df2,out_suffix,col_palette=NULL,
 # 
 # box()
 # dev.off()
-
-
-########################## END OF SCRIPT ###############################################
-
