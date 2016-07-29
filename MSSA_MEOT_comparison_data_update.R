@@ -94,7 +94,7 @@ SST_dir <- "SST_1982_2015"
 
 mssa_dir1 <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_paper/SST_data_update_1982_2015/MSSA/anom_sst_1982_2007/components"
 mssa_dir2 <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_paper/SST_data_update_1982_2015/MSSA/sst_mask_0_180_82to07_anom/components"
-mssa_dir3 <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_paper/SST_data_update_1982_2015/MSSA/sst_msk_0_180_1982_2015_anom"
+mssa_dir3 <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_paper/SST_data_update_1982_2015/MSSA/sst_msk_0_180_1982_2015_anom/components"
 
 lf_sst <- list.files(path=file.path(in_dir,SST_dir),pattern=".rst$",full.names=T)
 ### Get EOT and PCA raster images here!!
@@ -105,14 +105,27 @@ lf_mssa1 <- mixedsort(list.files(path=eot_dir,pattern="eot_sst_msk_0_180_1982_20
 lf_mssa2 <- mixedsort(list.files(path=pca_dir,pattern="sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_CompLoadingImg_.*.rst$",full.names=T))
 lf_mssa3 <- mixedsort(list.files(path=pca_dir,pattern="sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_CompLoadingImg_.*.rst$",full.names=T))
 
-sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_Lag_0_S-Mode_CompLoadingImg_11.RDC
+sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_Lag_0_S-Mode_CompLoadingImg_11.rst
+sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_Lag_0_S-Mode_CompLoadingImg_10.rst
 
 #pca_fname1 <- file.path(in_dir,"sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_DIF.ods") #ods file with loadings and variance
 #eot_fname1 <- file.path(in_dir,"eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std.ods")
 
-mssa_fname1 <- file.path(in_dir,"anom_sst_1982_2007_MSSA_Center_Std_S-Mode_DIF.ods")
-mssa_fname2 <- file.path(in_dir, "sst_mask_0_180_82to07_anom_MSSA_Center_Std_S-Mode_DIF.ods")
-mssa_fname3 <- file.path(in_dir, "sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_S-Mode_DIF.ods")
+mssa_fname1 <- file.path(mssa_dir1r,"anom_sst_1982_2007_MSSA_Center_Std_S-Mode_DIF.ods")
+mssa_fname2 <- file.path(mssa_dir2, "sst_mask_0_180_82to07_anom_MSSA_Center_Std_S-Mode_DIF.ods")
+mssa_fname3 <- file.path(mssa_dir3, "sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_S-Mode_DIF.ods")
+
+mssa_dir1 <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_paper/SST_data_update_1982_2015/MSSA/anom_sst_1982_2007/components"
+comp_dirs <- list(mssa_dir1,mssa_dir2,mssa_dir3)
+#tmp_str <- strsplit(comp_files,"_")
+tmp_str <- comp_dirs
+no_comp <- 20 #length(comp_str) #number of components in the analysis
+list_no_comp <- 1:no_comp
+list_comp_files <- lapply(tmp_str,FUN=function(x){list.files(path=x,pattern=".*.Comp.*.rst")})
+comp_str <-(lapply(list_no_comp,function(k){grep(pattern=paste0(".*.Comp.*.",k),list_comp_files,value=TRUE)}))
+comp_file_str <- paste(comp_str,"_R.rst",sep="") #components end string 
+
+#list_MEOT_Lag_analyses_comp <- lapply(1:length(comp_file_str),function(k){grep(pattern=comp_file_str[k],comp_files,value=TRUE)})
 
 #anom_sst_1982_2007_MSSA_Center_Std_S-Mode_DIF.ods
 #sst_mask_0_180_82to07_anom_MSSA_Center_Std_S-Mode_DIF.ods
@@ -164,27 +177,28 @@ indices_dat_dz <- zoo(dat_indices,dseq) #create zoo object from data.frame and d
 
 ### GET DATA: 1982-2015 EOT and PCA S mode
 
-pca_dat <- read_ods(pca_fname1,sheet="pca_loadings")
-names(pca_dat)[1] <- "fnames"
-names(pca_dat)[2:ncol(pca_dat)] <- paste0("pc_",1:20)
-test <- subset(pca_dat,select=paste0("pc_",1:20))
-test<-lapply(test,FUN=convert_to_numeric)
-test<- do.call(cbind,test)
-pca_dat <- as.data.frame(test)
-pca_dat_dz <- zoo(pca_dat,dseq) #create zoo object from data.frame and date sequence object
-time(pca_dat_dz)  #no time stamp??
+read_comp_results <- function(data_filename,sheet_name,dseq){
+  decomp_dat <- read_ods(data_filename,sheet=sheet_name)
+  names(decomp_dat)[1] <- "fnames"
+  names(decomp_dat)[2:ncol(decomp_dat)] <- paste0("comp_",1:20)
+  test <- subset(decomp_dat,select=paste0("comp_",1:20))
+  test<-lapply(test,FUN=convert_to_numeric)
+  test<- do.call(cbind,test)
+  decomp_dat <- as.data.frame(test)
+  decomp_dat_dz <- zoo(decomp_dat,dseq) #create zoo object from data.frame and date sequence object
+  time(decomp_dat_dz)  #no time stamp??
+  data_obj <- list(decomp_dat_dz,decomp_dat)
+  names(data_obj) <- c("dat_dz","dat")
+  return(data_obj)
+}
 
-eot_dat <- read_ods(eot_fname1,sheet="eot_loadings")
-#test <- read_ods(eot_fname1,sheet="pca_loadings")
-test <- subset(eot_dat,select=paste0("eot",1:20))
-test<-lapply(test,FUN=convert_to_numeric)
-test<- do.call(cbind,test)
-eot_dat <- as.data.frame(test)
-eot_dat_dz <- zoo(eot_dat,dseq) #create zoo object from data.frame and date sequence object
+mssa3_obj_dat <- read_comp_results(data_filename=mssa_fname3,sheet_name="scores",dseq[13:408]) #1982-2015
+plot(mssa3_obj_dat$dat_dz)
+
 
 #### Plot all the teleconnection indices and components loadings from EOT and PCA S mode
 plot(indices_dat_dz)
-plot(eot_dat_dz)
+#plot(eot_dat_dz)
 plot(pca_dat_dz)
 
 ###########################
@@ -195,7 +209,25 @@ plot(pca_dat_dz)
 #infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
 #                              "PCA_EOT_comparison_data_update_function_07192016.R")
 #source(infile1_function)
+lag_window <- 13
+### We need to use cross-corr in this case!!!
+mode_list <- paste0("comp_",1:no_comp)
 
+comp_dat_dz <- mssa3_obj_dat$dat_dz
+
+telind_dat_dz <- indices_dat_dz[13:408,]
+#telind_dat_dz <- subset(indices_dat_dz,from=)
+
+dat_dz <- merge(telind_dat_dz, comp_dat_dz, all = FALSE)
+
+#debug(crosscor_lag_analysis_fun)
+test <- crosscor_lag_analysis_fun(telind,
+                                  mode_list,
+                                  d_z=dat_dz,
+                                  lag_window=lag_window,
+                                  fig=T,
+                                  out_suffix=out_suffix)
+  
 cor_pca_df <- cor_series_fun(ts1=dat_indices,ts2=pca_dat,fig=F,out_suffix)
 
 write.table(cor_pca_df ,file=file.path(out_dir,paste0("cor_pca_df","_",out_suffix,".txt")),sep=",")
