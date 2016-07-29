@@ -71,20 +71,12 @@ convert_to_numeric <-function(x){
 
 crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suffix){
   #This function crosss correlates between two sets of time series given some lag window.
-  #The inputs are time series objects of the type zoo.
-  #
-  #Input Arguments:
+  #Arguments:
   #1)telind: time series 1 as character vector
   #2)modelist: time series 2 as character vector
   #3)d_z: zoo object 
   #4)lag_window:
-  #5)fig: TRUE or FALSE, if TRUE generate crossorrrelation figure
-  #6)out_suffix
-  ##AUTHOR: Benoit Parmentier                                                                       #
-  #DATE CREATED:12/15/2013 
-  #DATE MODIFIED: 07/29/2016
-  ###Comments
-  ### Last update on 07/29/2016, this needs improvement!!
+  #5)fig:
   
   lag_table_ext<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
   lag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
@@ -96,12 +88,14 @@ crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suff
   
   #lag_cross_cor_PCA_m<-array(data=NA,nrow=length(lag_m),ncol=length(mode_list))
   for (i in 1:length(telind)){
+    telindex<-telind[i]
     pos1<-match(telindex,names(d_z))
     #retain ccf!!!
     for (j in 1:length(mode_list)){
       mode_n<-mode_list[j]
       pos2<-match(mode_n,names(d_z))
-      ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=lag_window)  #Note that ccf does not take
+      ccf_obj<-ccf(as.numeric(d_z[,pos1]),as.numeric(d_z[,pos2]), lag.max=lag_window,na.action=na.pass)  #Note that ccf does not take zoo object!!
+      #ccf_obj<-cor(d_z[,pos1],d_z[,pos2])
       
       lag_m<-seq(-1*lag_window,lag_window,1)
       ccf_obj$lag[,1,1]<-lag_m  #replacing lag values because continuous
