@@ -111,7 +111,7 @@ sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_Lag_0_S-Mode_CompLoadingImg_10.rst
 #pca_fname1 <- file.path(in_dir,"sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_DIF.ods") #ods file with loadings and variance
 #eot_fname1 <- file.path(in_dir,"eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std.ods")
 
-mssa_fname1 <- file.path(mssa_dir1r,"anom_sst_1982_2007_MSSA_Center_Std_S-Mode_DIF.ods")
+mssa_fname1 <- file.path(mssa_dir1,"anom_sst_1982_2007_MSSA_Center_Std_S-Mode_DIF.ods")
 mssa_fname2 <- file.path(mssa_dir2, "sst_mask_0_180_82to07_anom_MSSA_Center_Std_S-Mode_DIF.ods")
 mssa_fname3 <- file.path(mssa_dir3, "sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_S-Mode_DIF.ods")
 
@@ -131,8 +131,48 @@ comp_file_str <- paste(comp_str,"_R.rst",sep="") #components end string
 #sst_mask_0_180_82to07_anom_MSSA_Center_Std_S-Mode_DIF.ods
 #sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_S-Mode_DIF.ods
 
+infile1<-"SAODI-01-1854_06-2011_test.asc"             #GHCN shapefile containing variables for modeling 2010                 
+infile2<-"SAODI-01-1854_06-2011.csv"                     #List of 10 dates for the regression
+#infile2<-"list_365_dates_04212012.txt"
+infile3<-"MEOT_MSSA_Telcon_indices_08062012.xlsx"                        #LST dates name
+infile3<-"MEOT_MSSA_Telcon_indices_12112012.xlsx"                        #LST dates name
+
+#path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/"
+#on MAC:
+#path<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/MEOT_analysis_R_10102012"
+#path<-"/Users/benoitparmentier/Documents/DATA/Benoit/Clark_University/Paper_writings/MSSA_BNP/MEOT_analysis_R_10102012"
+# on Atlas:
+path<-"/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_analyses_02202015"
+#path_raster<-"/Users/benoitparmentier/Dropbox/Data/MEOT_paper/MEOT12272012/MEOT_working_dir_10232012/MSSA_EEOT_04_29_09"
+
+#Importing SAOD index...Note that it was reformatted from the first file in infile1
+
+#dates <-readLines(paste(path,"/",infile2, sep=""))
+SAODI<-read.table(paste(path,"/",infile2,sep=""),sep=",", header=TRUE)
+
+#Prepare data to write out in a textfile
+s_SAODI2 <- subset(SAODI, year>1981 & year<2008) #Subset rows that correspond to the conditions
+s_SAODI2<- subset(s_SAODI2, select=-year) #Remove the column year
+in_SAODI2<-as.vector(t(s_SAODI2))   #This transform the data frame into a one colum
+write.table(in_SAODI2,file=paste("SAOD_index_1981_2007",out_suffix,".txt",sep=""),sep=",")
+
+#Prepare data for cross lag correlation analysis and write out results
+s_SAODI <- subset(SAODI, year>1981 & year<2007) #Subset rows that correspond to the conditions
+s_SAODI<- subset(s_SAODI, select=-year) #Remove the column year
+in_SAODI<-as.vector(t(s_SAODI))   #This transform the data frame into a one colum
+write.table(in_SAODI,file=paste("SAOD_index_1981_2006",out_suffix,".txt",sep=""),sep=",")
+
+#Import results from MEOT and MSSA analyses with teleconneciton indices
+dat<-read.xls(file.path(path,infile3), sheet=1)
+tail(dat$Date_label)
+dat$SAOD<-in_SAODI  #Adding the SAOD index to all the MEOT/MSSA results in the data frame
+write.table(dat,"Telcon_indices_with_SAOD_12112012.txt",sep=",")
 ## Contains teleconnection indices assembled
 indices_fname <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/data/indices_new.xls"
+write.table(dat,file.path(dirname(indices_fname),"Telcon_indices_with_SAOD_12112012.txt"),sep=",")
+   
+dat_old_indices <- dat
+old_indices_dat_dz <- zoo(dat_old_indices,dseq[1:300]) #create zoo object from data.frame and date sequence object
 
 telind<-c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
 
@@ -153,6 +193,11 @@ dat <- rename(dat, c("QBO_30_original"="QBO")) #from plyr package
 dat_indices <- subset(dat,select=telind)
 View(dat_indices)
      
+test <- dat_indices[1:300,]
+cor(test$PNA,dat_old_indices$PNA)
+cor(test$MEI,dat_old_indices$MEI)
+cor(test$PDO,dat_old_indices$PDO)
+
 ##Not elegant but works for now...
 test<-lapply(dat_indices ,FUN=convert_to_numeric)
 test<- do.call(cbind,test)
@@ -195,11 +240,13 @@ read_comp_results <- function(data_filename,sheet_name,dseq){
 mssa3_obj_dat <- read_comp_results(data_filename=mssa_fname3,sheet_name="scores",dseq[13:408]) #1982-2015
 plot(mssa3_obj_dat$dat_dz)
 
+mssa1_obj_dat <- read_comp_results(data_filename=mssa_fname1,sheet_name="scores",dseq[1:300]) #1982-2015
+plot(mssa1_obj_dat$dat_dz)
 
 #### Plot all the teleconnection indices and components loadings from EOT and PCA S mode
 plot(indices_dat_dz)
 #plot(eot_dat_dz)
-plot(pca_dat_dz)
+#plot(pca_dat_dz)
 
 ###########################
 #### PART 1: NOW CARRY OUT CORRELATION BETWEEN INDICES AND COMPONENTS
@@ -227,25 +274,73 @@ test <- crosscor_lag_analysis_fun(telind,
                                   lag_window=lag_window,
                                   fig=T,
                                   out_suffix=out_suffix)
-  
-cor_pca_df <- cor_series_fun(ts1=dat_indices,ts2=pca_dat,fig=F,out_suffix)
+out_suffix_str <- paste0("mssa_1982_2015_",out_suffix)
+test2 <- crosscor_lag_analysis_fun(mode_list,
+                                  mode_list,
+                                  d_z=comp_dat_dz,
+                                  lag_window=lag_window,
+                                  fig=F,
+                                  out_suffix=out_suffix)
+
+#cor_pca_df <- cor_series_fun(ts1=dat_indices,ts2=pca_dat,fig=F,out_suffix)
 
 write.table(cor_pca_df ,file=file.path(out_dir,paste0("cor_pca_df","_",out_suffix,".txt")),sep=",")
 
-cor_eot_df <- cor_series_fun(ts1=dat_indices,ts2=eot_dat,fig=F,out_suffix)
-#test <-lapply(cor_eot_df,FUN=convert_to_numeric)
-#test<- do.call(cbind,test)
-#cor_eot_df <- as.data.frame(test)
 
-write.table(cor_eot_df ,file=file.path(out_dir,paste0("cor_eot_df","_",out_suffix,".txt")),sep=",")
+### Correlation between MSSA1 (1982-2007 old data) and MEOT (1982-2015 new data)
 
-### Correlation between EOT and PCA
+mode_list <- paste0("MEOT",1:20)
+out_suffix_str <- paste0("meot_old_1982_2007_",out_suffix)
+test3 <- crosscor_lag_analysis_fun(telind,
+                                  mode_list,
+                                  d_z=old_indices_dat_dz,
+                                  lag_window=lag_window,
+                                  fig=F,
+                                  out_suffix=out_suffix_str)
+
+#cor_eot_pca_df <- cor_series_fun(ts1=pca_dat,ts2=eot_dat,fig=F,out_suffix)
+
+write.table(cor_eot_pca_df ,file=file.path(out_dir,paste0("correlation_between_eot_and_pca_cor_eot_df","_",out_suffix,".txt")),sep=",")
+
+#diag_m <- diag(as.matrix(cor_eot_pca_df))
+
+#################
+### Now do MSSA1 (with old data 1982-2007) using old indices to check the results
+
+mode_list <- paste0("comp_",1:no_comp)
+
+comp_dat_dz <- mssa1_obj_dat$dat_dz
+telind_dat_dz<- subset(old_indices_dat_dz,select=telind)
+
+dat_dz <- merge(telind_dat_dz, comp_dat_dz, all = FALSE)
+
+#telind_dat_dz <- indices_dat_dz[13:408,]
+mode_list <- paste0("comp_",1:20) #selected MSSA
+out_suffix_str <- paste0("mssa_old_1982_2007_",out_suffix)
+test4 <- crosscor_lag_analysis_fun(telind,
+                                   mode_list,
+                                   d_z=dat_dz,
+                                   lag_window=lag_window,
+                                   fig=F,
+                                   out_suffix=out_suffix_str)
 
 cor_eot_pca_df <- cor_series_fun(ts1=pca_dat,ts2=eot_dat,fig=F,out_suffix)
 
 write.table(cor_eot_pca_df ,file=file.path(out_dir,paste0("correlation_between_eot_and_pca_cor_eot_df","_",out_suffix,".txt")),sep=",")
 
-diag_m <- diag(as.matrix(cor_eot_pca_df))
+
+#debug(generate_barplot_fun)
+##Comparing cross-correlation between MSSA1 and telind as well as MEOT and telind
+out_suffix_str <- paste0("meot_mssa_",out_suffix)
+lf_barplot_comparison <- generate_barplot_comparison_fun(df1=test3$extremum,df2=test4$extremum,out_suffix=out_suffix_str ,col_palette=NULL,out_dir=NULL)
+
+### Generate for comparison between EOT and PCA??
+
+#debug(generate_barplot_fun)
+#lf_barplot_comparison <- generate_barplot_comparison_fun(df1=cor_eot_df,df2=cor_pca_df,out_suffix=out_suffix ,col_palette=NULL,out_dir=NULL)
+
+
+############### Correlate MEOT and MSSA?
 
 ##Quick plot of the diagonal
 barplot(diag_m,ylim=c(-1,1),
@@ -345,10 +440,6 @@ dev.off()
 
 #data_plot<-cbind(as.vector(mssa_obj$extremum[pos1]),as.vector(mssa_obj$extremum[pos2]))
 
-### Generate for comparison between EOT and PCA??
-
-#debug(generate_barplot_fun)
-lf_barplot_comparison <- generate_barplot_comparison_fun(df1=cor_eot_df,df2=cor_pca_df,out_suffix=out_suffix ,col_palette=NULL,out_dir=NULL)
 
 ###############
 #### Generate maps+ temporal loadings figures for each (pca and eot!!)
