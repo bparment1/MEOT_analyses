@@ -7,7 +7,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/15/2016 
-#DATE MODIFIED: 07/20/2016
+#DATE MODIFIED: 07/30/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -71,12 +71,20 @@ convert_to_numeric <-function(x){
 
 crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suffix){
   #This function crosss correlates between two sets of time series given some lag window.
-  #Arguments:
+  #The inputs are time series objects of the type zoo.
+  #
+  #Input Arguments:
   #1)telind: time series 1 as character vector
   #2)modelist: time series 2 as character vector
   #3)d_z: zoo object 
   #4)lag_window:
-  #5)fig:
+  #5)fig: TRUE or FALSE, if TRUE generate crossorrrelation figure
+  #6)out_suffix
+  ##AUTHOR: Benoit Parmentier                                                                       #
+  #DATE CREATED:12/15/2013 
+  #DATE MODIFIED: 07/29/2016
+  ###Comments
+  ### Last update on 07/29/2016, this needs improvement!!
   
   lag_table_ext<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
   lag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
@@ -88,14 +96,15 @@ crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suff
   
   #lag_cross_cor_PCA_m<-array(data=NA,nrow=length(lag_m),ncol=length(mode_list))
   for (i in 1:length(telind)){
-    telindex<-telind[i]
+    telindex <- telind[i]
     pos1<-match(telindex,names(d_z))
     #retain ccf!!!
     for (j in 1:length(mode_list)){
       mode_n<-mode_list[j]
       pos2<-match(mode_n,names(d_z))
-      ccf_obj<-ccf(as.numeric(d_z[,pos1]),as.numeric(d_z[,pos2]), lag.max=lag_window,na.action=na.pass)  #Note that ccf does not take zoo object!!
-      #ccf_obj<-cor(d_z[,pos1],d_z[,pos2])
+      sum(is.na(d_z[,pos2]))
+      
+      ccf_obj<-ccf(as.numeric(d_z[,pos1]),as.numeric(d_z[,pos2]), lag=lag_window,na.action=na.pass)  #Note that ccf does not take
       
       lag_m<-seq(-1*lag_window,lag_window,1)
       ccf_obj$lag[,1,1]<-lag_m  #replacing lag values because continuous
@@ -154,6 +163,21 @@ crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suff
   save(crosscor_obj,file=file_name)
   
   return(crosscor_obj)
+}
+
+read_comp_results <- function(data_filename,sheet_name,dseq){
+  decomp_dat <- read_ods(data_filename,sheet=sheet_name)
+  names(decomp_dat)[1] <- "fnames"
+  names(decomp_dat)[2:ncol(decomp_dat)] <- paste0("comp_",1:20)
+  test <- subset(decomp_dat,select=paste0("comp_",1:20))
+  test<-lapply(test,FUN=convert_to_numeric)
+  test<- do.call(cbind,test)
+  decomp_dat <- as.data.frame(test)
+  decomp_dat_dz <- zoo(decomp_dat,dseq) #create zoo object from data.frame and date sequence object
+  time(decomp_dat_dz)  #no time stamp??
+  data_obj <- list(decomp_dat_dz,decomp_dat)
+  names(data_obj) <- c("dat_dz","dat")
+  return(data_obj)
 }
 
 cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
