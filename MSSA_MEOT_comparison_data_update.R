@@ -8,7 +8,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/11/2016 
-#DATE MODIFIED: 07/28/2016
+#DATE MODIFIED: 08/12/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #           
@@ -42,7 +42,7 @@ library(plyr)                              # contains "rename","revalue" and oth
 ###### Functions  used in the script  ##########
 
 infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-                             "PCA_EOT_comparison_data_update_function_07202016.R")
+                             "PCA_EOT_comparison_data_update_function_07302016.R")
 source(infile1_function)
 
 #############################################
@@ -101,12 +101,15 @@ lf_sst <- list.files(path=file.path(in_dir,SST_dir),pattern=".rst$",full.names=T
 #lf_eot <- mixedsort(list.files(path=eot_dir,pattern="eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std_.*._R.rst$",full.names=T))
 #lf_pca <- mixedsort(list.files(path=pca_dir,pattern="sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_CompLoadingImg_.*.rst$",full.names=T))
 
-lf_mssa1 <- mixedsort(list.files(path=eot_dir,pattern="eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std_.*._R.rst$",full.names=T))
-lf_mssa2 <- mixedsort(list.files(path=pca_dir,pattern="sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_CompLoadingImg_.*.rst$",full.names=T))
-lf_mssa3 <- mixedsort(list.files(path=pca_dir,pattern="sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_CompLoadingImg_.*.rst$",full.names=T))
+#anom_sst_1982_2007_MSSA_Center_Std_Lag_11_S-Mode_CompLoadingImg_18.rst
+lf_mssa1 <- mixedsort(list.files(path=mssa_dir1,pattern="anom_sst_1982_2007_MSSA_Center_Std_Lag_.*._S-Mode_CompLoadingImg_.*.rst$",full.names=T))
+#lf_mssa1 <- mixedsort(list.files(path=mssa_dir1,pattern="eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std_.*._R.rst$",full.names=T))
+#lf_mssa2 <- mixedsort(list.files(path=mssa_dir2,pattern="sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_CompLoadingImg_.*.rst$",full.names=T))
+lf_mssa2 <- mixedsort(list.files(path=mssa_dir2,pattern="sst_mask_0_180_82to07_anom_MSSA_Center_Std_Lag_.*._S-Mode_CompLoadingImg_.*.rst$",full.names=T))
 
-sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_Lag_0_S-Mode_CompLoadingImg_11.rst
-sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_Lag_0_S-Mode_CompLoadingImg_10.rst
+#sst_mask_0_180_82to07_anom_MSSA_Center_Std_Lag_12_S-Mode_CompLoadingImg_11.rst
+
+lf_mssa3 <- mixedsort(list.files(path=mssa_dir3,pattern="sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_Lag_.*._S-Mode_CompLoadingImg_.*.rst$",full.names=T))
 
 #pca_fname1 <- file.path(in_dir,"sst_msk_0_180_1982_2015_anom_PCA_Center_Std_S-Mode_DIF.ods") #ods file with loadings and variance
 #eot_fname1 <- file.path(in_dir,"eot_sst_msk_0_180_1982_2015_anom_EOT_Center_Std.ods")
@@ -115,7 +118,6 @@ mssa_fname1 <- file.path(mssa_dir1,"anom_sst_1982_2007_MSSA_Center_Std_S-Mode_DI
 mssa_fname2 <- file.path(mssa_dir2, "sst_mask_0_180_82to07_anom_MSSA_Center_Std_S-Mode_DIF.ods")
 mssa_fname3 <- file.path(mssa_dir3, "sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_S-Mode_DIF.ods")
 
-mssa_dir1 <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_paper/SST_data_update_1982_2015/MSSA/anom_sst_1982_2007/components"
 comp_dirs <- list(mssa_dir1,mssa_dir2,mssa_dir3)
 #tmp_str <- strsplit(comp_files,"_")
 tmp_str <- comp_dirs
@@ -171,6 +173,11 @@ write.table(dat,"Telcon_indices_with_SAOD_12112012.txt",sep=",")
 indices_fname <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/data/indices_new.xls"
 write.table(dat,file.path(dirname(indices_fname),"Telcon_indices_with_SAOD_12112012.txt"),sep=",")
    
+## find all 7th of the month between two dates, the last being a 7th.
+st <- as.Date("1982-1-15")
+en <- as.Date("2015-12-15")
+dseq <- seq(st, en, by="month") #Creating monthly date sequence to create a time series from a data frame
+
 dat_old_indices <- dat
 old_indices_dat_dz <- zoo(dat_old_indices,dseq[1:300]) #create zoo object from data.frame and date sequence object
 
@@ -191,7 +198,7 @@ names(dat)[1:2] <- c("year","month")
 dat <- rename(dat, c("QBO_30_original"="QBO")) #from plyr package
 
 dat_indices <- subset(dat,select=telind)
-View(dat_indices)
+#View(dat_indices)
      
 test <- dat_indices[1:300,]
 cor(test$PNA,dat_old_indices$PNA)
@@ -211,9 +218,10 @@ d_z<-as.zoo(d_ts)  #### THIS IS THE TIME SERIES OBJECT USED LATER ON
 d_xts<-as.xts(d_ts)
 
 ## find all 7th of the month between two dates, the last being a 7th.
-st <- as.Date("1982-1-15")
-en <- as.Date("2015-12-15")
-dseq <- seq(st, en, by="month") #Creating monthly date sequence to create a time series from a data frame
+#st <- as.Date("1982-1-15")
+#en <- as.Date("2015-12-15")
+#dseq <- seq(st, en, by="month") #Creating monthly date sequence to create a time series from a data frame
+
 d_z2<-zoo(dat,dseq)
 time(d_z)  #no time stamp??
 time(d_z2) 
@@ -221,21 +229,6 @@ time(d_z2)
 indices_dat_dz <- zoo(dat_indices,dseq) #create zoo object from data.frame and date sequence object
 
 ### GET DATA: 1982-2015 EOT and PCA S mode
-
-read_comp_results <- function(data_filename,sheet_name,dseq){
-  decomp_dat <- read_ods(data_filename,sheet=sheet_name)
-  names(decomp_dat)[1] <- "fnames"
-  names(decomp_dat)[2:ncol(decomp_dat)] <- paste0("comp_",1:20)
-  test <- subset(decomp_dat,select=paste0("comp_",1:20))
-  test<-lapply(test,FUN=convert_to_numeric)
-  test<- do.call(cbind,test)
-  decomp_dat <- as.data.frame(test)
-  decomp_dat_dz <- zoo(decomp_dat,dseq) #create zoo object from data.frame and date sequence object
-  time(decomp_dat_dz)  #no time stamp??
-  data_obj <- list(decomp_dat_dz,decomp_dat)
-  names(data_obj) <- c("dat_dz","dat")
-  return(data_obj)
-}
 
 mssa3_obj_dat <- read_comp_results(data_filename=mssa_fname3,sheet_name="scores",dseq[13:408]) #1982-2015
 plot(mssa3_obj_dat$dat_dz)
@@ -268,13 +261,16 @@ telind_dat_dz <- indices_dat_dz[13:408,]
 dat_dz <- merge(telind_dat_dz, comp_dat_dz, all = FALSE)
 
 #debug(crosscor_lag_analysis_fun)
+#sst_msk_0_180_1982_2015_anom_MSSA_Center_Std_S-Mode_DIF.ods
+out_suffix_str <- paste0("teleconnections_indices_comparison_mssa3_1982_2015_",out_suffix)
 test <- crosscor_lag_analysis_fun(telind,
                                   mode_list,
                                   d_z=dat_dz,
                                   lag_window=lag_window,
-                                  fig=T,
+                                  fig=F,
                                   out_suffix=out_suffix)
-out_suffix_str <- paste0("mssa_1982_2015_",out_suffix)
+
+out_suffix_str <- paste0("cross_correlation_comparison_mssa3_1982_2015_",out_suffix)
 test2 <- crosscor_lag_analysis_fun(mode_list,
                                   mode_list,
                                   d_z=comp_dat_dz,
