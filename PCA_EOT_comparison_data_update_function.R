@@ -165,8 +165,10 @@ crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suff
   return(crosscor_obj)
 }
 
-read_comp_results <- function(data_filename,sheet_name,dseq){
+read_comp_results <- function(data_filename,sheet_name,dseq,names_col=NULL){
   #Function to generate time series from input indices in ODS, .txt or .xlsx formats 
+  #Note that this functions assumes the first columns contains an index of timestep or dates
+  #
   #INPUTS:
   #d1) ata_filename: input file name
   #2) sheet_name: name of the sheet to consider, not used for .txt
@@ -190,8 +192,14 @@ read_comp_results <- function(data_filename,sheet_name,dseq){
   
   names(decomp_dat)[1] <- "fnames"
   new_size <- ncol(decomp_dat) - 1
-  names(decomp_dat)[2:ncol(decomp_dat)] <- paste0("comp_",1:new_size)
-  test <- subset(decomp_dat,select=paste0("comp_",1:new_size))
+  if(is.null(names_col)){
+    names(decomp_dat)[2:ncol(decomp_dat)] <- paste0("comp_",1:new_size)
+    test <- subset(decomp_dat,select=paste0("comp_",1:new_size))
+  }else{
+    names(decomp_dat)[2:ncol(decomp_dat)] <- names_col
+    test <- subset(decomp_dat,select=names_col)
+  }
+
   test<-lapply(test,FUN=convert_to_numeric)
   test<- do.call(cbind,test)
   decomp_dat <- as.data.frame(test)
