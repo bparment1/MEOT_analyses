@@ -334,6 +334,43 @@ generate_barplot_comparison_fun <- function(df1,df2,out_suffix,col_palette=NULL,
   return(lf_png)
 }
 
+plot_lag_components <- function(i,lf,lag_window,r_mask,out_suffix,out_dir,name_lf){
+  
+  name_stack <- name_lf[i]
+  r_s <- lf[[i]]
+  r_s <- stack(r_s)
+  r_s <- mask(r_s,r_mask)
+  #names(eot_s) <- paste0("meot",i,"_lag",1:lag_window)
+  names(r_s) <- paste0(name_stack,i,"_lag",1:lag_window)
+  #plot(r_s,col=matlab.like(256))
+  
+  
+  res_pix <- 600 #it will be time 2
+  res_pix <- 500
+  col_mfrow <- 5
+  row_mfrow <- 4
+  
+  png_file_name <- file.path(out_dir,paste0("figure_spatial_pattern_levelplot_stack_",name_stack,"_comp_",i,out_suffix,".png"))
+  png(png_file_name,width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  
+  #par(mfrow=c(row_mfrow,col_mfrow))
+  #layout=c(3, 2)
+  layout_m <- c(col_mfrow,row_mfrow)
+  
+  temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+  title_plot<-paste(name_stack , "spatial sequence",sep=" ")
+  #levelplot(meot_rast_m,col.regions=temp.colors)
+  #levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=4)
+  p<- levelplot(r_s,main=title_plot, layout=layout_m,
+            ylab=NULL,xlab=NULL,
+            par.settings = list(axis.text = list(font = 2, cex = 1.5),
+                                par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+            col.regions=temp.colors,at=seq(-1,1,by=0.02))
+  print(p) #must use print p to have this plotted in a function because of time it takes to plot!!!
+  dev.off()
+  
+  return(png_file_name)
+}
 
 ########################## END OF SCRIPT #########################
 
