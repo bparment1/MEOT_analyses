@@ -104,7 +104,8 @@ crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suff
       pos2<-match(mode_n,names(d_z))
       sum(is.na(d_z[,pos2]))
       
-      ccf_obj<-ccf(as.numeric(d_z[,pos1]),as.numeric(d_z[,pos2]), lag=lag_window,na.action=na.pass)  #Note that ccf does not take
+      ccf_obj<-ccf(as.numeric(d_z[,pos1]),as.numeric(d_z[,pos2]), lag=lag_window,na.action=na.pass,
+                   main=paste("Crosslag correlation between",telindex,"and",mode_n,"for lag",lag_window,sep=" "))  #Note that ccf does not take
       
       lag_m<-seq(-1*lag_window,lag_window,1)
       ccf_obj$lag[,1,1]<-lag_m  #replacing lag values because continuous
@@ -334,7 +335,7 @@ generate_barplot_comparison_fun <- function(df1,df2,out_suffix,col_palette=NULL,
   return(lf_png)
 }
 
-plot_lag_components <- function(i,lf,lag_window,r_mask,out_suffix,out_dir,name_lf){
+plot_lag_components <- function(i,lf,lag_window,r_mask,z_range,out_suffix,out_dir,name_lf){
   
   name_stack <- name_lf[i]
   r_s <- lf[[i]]
@@ -365,7 +366,8 @@ plot_lag_components <- function(i,lf,lag_window,r_mask,out_suffix,out_dir,name_l
             ylab=NULL,xlab=NULL,
             par.settings = list(axis.text = list(font = 2, cex = 1.5),
                                 par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
-            col.regions=temp.colors,at=seq(-1,1,by=0.02))
+            #col.regions=temp.colors,at=seq(-1,1,by=0.02))
+            col.regions=temp.colors,at=seq(z_range[1],z_range[2],by=0.02))
   print(p) #must use print p to have this plotted in a function because of time it takes to plot!!!
   dev.off()
   
