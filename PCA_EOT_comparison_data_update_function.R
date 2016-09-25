@@ -105,7 +105,8 @@ crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suff
       sum(is.na(d_z[,pos2]))
       
       ccf_obj<-ccf(as.numeric(d_z[,pos1]),as.numeric(d_z[,pos2]), lag=lag_window,na.action=na.pass,
-                   main=paste("Crosslag correlation between",telindex,"and",mode_n,"for lag",lag_window,sep=" "))  #Note that ccf does not take
+                   main=paste("Crosslag correlation between",telindex,"and",mode_n,"for lag",lag_window,sep=" "),
+                   plot=F)  #Note that ccf does not take
       
       lag_m<-seq(-1*lag_window,lag_window,1)
       ccf_obj$lag[,1,1]<-lag_m  #replacing lag values because continuous
@@ -342,13 +343,13 @@ plot_lag_components <- function(i,lf,lag_window,r_mask,z_range,out_suffix,out_di
   r_s <- stack(r_s)
   r_s <- mask(r_s,r_mask)
   #names(eot_s) <- paste0("meot",i,"_lag",1:lag_window)
-  names(r_s) <- paste0(name_stack,i,"_lag",1:lag_window)
+  names(r_s) <- paste0("lag.",1:lag_window)
   #plot(r_s,col=matlab.like(256))
   
   
   res_pix <- 600 #it will be time 2
   res_pix <- 500
-  col_mfrow <- 5
+  col_mfrow <- 4
   row_mfrow <- 4
   
   png_file_name <- file.path(out_dir,paste0("figure_spatial_pattern_levelplot_stack_",name_stack,"_comp_",i,out_suffix,".png"))
@@ -360,6 +361,7 @@ plot_lag_components <- function(i,lf,lag_window,r_mask,z_range,out_suffix,out_di
   
   temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
   title_plot<-paste(name_stack , "spatial sequence",sep=" ")
+  #tile_plot <- title_plot_str
   #levelplot(meot_rast_m,col.regions=temp.colors)
   #levelplot(meot_rast_m,col.regions=temp.colors,cex.labels=4)
   p<- levelplot(r_s,main=title_plot, layout=layout_m,
