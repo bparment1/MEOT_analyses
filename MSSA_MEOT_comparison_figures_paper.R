@@ -365,7 +365,7 @@ infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEO
                               "PCA_EOT_comparison_data_update_function_09252016.R")
 source(infile1_function)
 
-#### MEOT 1: old data
+#### MEOT 1: 1982-2007
 #temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
 names_stack_lf <- paste0("MEOT",1:no_comp)
 i<-1
@@ -375,7 +375,7 @@ i<-1
 z_range <- c(-1,1)
 
 temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
-title_plot<-paste(name_stack , "spatial sequence",sep=" ")
+title_plot_<-paste(name_stack , "spatial sequence",sep=" ")
 
 plot_lag_components(1,lf=meot1_lf,
                     lag_window = lag_window, 
@@ -384,23 +384,21 @@ plot_lag_components(1,lf=meot1_lf,
                     out_suffix=out_suffix,
                     out_dir=out_dir,
                     name_lf=names_stack_lf)
+#,
+#                    title_plot_str=title_plot)
 
 test_lf <- lapply(1:20,FUN=plot_lag_components,lf=meot1_lf,lag_window = lag_window, r_mask = r_mask,z_range=z_range,out_suffix=out_suffix,out_dir=out_dir,name_lf=names_stack_lf)
 #/home/bparmentier/Dropbox/Data/MEOT_paper/MSSA_paper/Data_paper/MEOT_working_dir_10232012/MEOT10232011/anom_sst_1982_2007/components
 
 
+#### MSSA 1: 1982-2007
 
-## can show there is more autocorrelation in EOTs?
-## can show there is less variance in EOTs?
-
-#### MSSA 1: old data:
-
-names_stack_lf <- paste0("MSSA_old_",1:no_comp)
+names_stack_lf <- paste0("MSSA",1:no_comp)
 i<-1
 #lf_eot <- mssa3_lf[[i]]
 #undebug(plot_lag_components)
 #out_suffix_str <- 
-z_range <- c(-.4,0.4)
+z_range <- c(-.3,0.3)
 plot_lag_components(1,lf=mssa1_lf,lag_window = lag_window, r_mask = r_mask,z_range=z_range,out_suffix,out_dir,name_lf=names_stack_lf)
 
 test_lf <- lapply(1:20,FUN=plot_lag_components,lf=mssa1_lf,lag_window = lag_window, r_mask = r_mask,z_range=z_range,out_suffix=out_suffix,out_dir=out_dir,name_lf=names_stack_lf)
