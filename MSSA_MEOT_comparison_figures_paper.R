@@ -4,7 +4,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:09/25/2016 
-#DATE MODIFIED: 09/25/2016
+#DATE MODIFIED: 09/27/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
@@ -405,6 +405,103 @@ test_lf <- lapply(1:20,FUN=plot_lag_components,lf=mssa1_lf,lag_window = lag_wind
 
 #################### PART 4: Generate temporal profiles patterns figures ##############
 
+#idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='month')
+list_fig_MEOT<-vector("list",4)
+list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_4_paper_MEOT1_MEOT3_temporal_sequence_pattern")
+list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_7_paper_MEOT7_MEOT16_temporal_sequence_pattern")
+list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_10_paper_MEOT10_MEOT15_temporal_sequence_pattern")
+list_fig_MEOT[[4]]<- c("MSSA1","MSSA3","Figure_13_paper_MSSA1_MSSA3_temporal_sequence_pattern")
+
+##Define the pairs
+#MEOT_quadratures<-c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15","MSSA1","MSSA3")
+MEOT_quadratures <- c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15","MSSA1","MSSA3","MSSA7-MSSA8","MSSA13-MSSA14","MSSA16-MSSA17")
+
+## can also have options for three indices together
+MEOT_quadratures <- c("MEOT1,MEOT3",
+                      "MEOT7,MEOT16",
+                      "MEOT10,MEOT15",
+                      "MSSA1,MSSA3",
+                      "MSSA7,MSSA8",
+                      "MSSA1,MSSA14",
+                      "MSSA16,MSSA17")
+
+
+dat <- old_indices_dat_dz
+dat_subset<-subset(dat,select=MEOT_quadratures)
+
+idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')  #Create a date object for labels...
+datelabels<-as.character(1:length(idx))
+
+for (i in 1:length(idx)){
+  date_proc<-idx[i]
+  month<-strftime(date_proc, "%b")          # extract current month of the date being processed
+  day<-strftime(date_proc, "%d")
+  year<-strftime(date_proc, "%y")  #Use y instead of Y for 2 digits
+  datelabels[i]<-paste(year,sep="")
+}
+
+#MSSA_quadratures<-c("MSSA1","MSSA3")
+#dat_subset<-subset(dat,select=MSSA_quadratures)
+
+X11(width=10,height=14)
+par(mfrow=c(2,1))
+
+list_quadratures <- strsplit(MEOT_quadratures,",")
+for (k in 1:4){
+  MEOTa<- list_fig_MEOT[[k]][[1]]
+  MEOTb<- list_fig_MEOT[[k]][[2]]
+  #if (MEOTb=="MSSA3"){
+  #  dat_subset[[MEOTb]]<-dat_subset[[MEOTb]]*-1
+  #}
+  y_range<-range(dat_subset[[MEOTa]],dat_subset[[MEOTb]])
+  plot(dat_subset[[MEOTa]],type="l",col="blue",ylim=y_range,axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
+  lines(dat_subset[[MEOTb]],tybe="b",lty="dashed",lwd=1.2,col="darkgreen",axes=FALSE)
+  breaks_lab<-seq(1,312,by=12)
+  axis(side=2)
+  #axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
+  axis(side=1,las=1,
+       at=breaks_lab,labels=datelabels, cex=1.5) #reduce number of labels to Jan and June
+  box()
+  if (MEOTb!="MSSA3"){
+    legend("topleft",legend=c(MEOTa,MEOTb), cex=0.8, col=c("blue","darkgreen"),
+           lty=c(1,2),lwd=2)  #lwd=line width
+  }
+  if (MEOTb=="MSSA3"){
+    legend("topright",legend=c(MEOTa,MEOTb), cex=0.8, col=c("blue","darkgreen"),
+           lty=c(1,2),lwd=2)  #lwd=line width
+  }
+  
+  
+  title(paste("Temporal profiles for", MEOTa, "and", MEOTb,sep=" "))
+  
+  #add second plot
+  pos1<-match(MEOTa,names(d_z))
+  pos2<-match(MEOTb,names(d_z))
+  #if (MEOTb=="MSSA3"){
+  #  ccf_obj<-ccf(d_z[,pos1],d_z[,pos2]*-1, lag=13,plot=FALSE)  #Note that MSSA3 needs to be reversed...11/06
+  #}
+  ccf_obj<-ccf(d_z[,pos1],d_z[,pos2], lag=13,plot=FALSE)  #Note that ccf does not take
+  lag_m<-seq(-1*lag_window,lag_window,1)
+  ccf_obj$lag[,1,1]<-lag_m  #replacign lag values because continuous
+  
+  #X11(type="cairo") #Cairo because it is macos...?
+  #plot_name<-paste("crosscorrelation", MEOTa, "and", MEOTb,"lag_analysis",sep="_")#replace by list fig naem
+  #png(paste(plot_name,"_",out_prefix,".png", sep=""))
+  #plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
+  #     xlab="Lag (month)", ylim=c(-1,1))
+  plot(ccf_obj, main= paste(MEOTa, "and", MEOTb,"lag analysis",sep=" "), ylab="Cross-correlation",
+       xlab="Lag (month)", ylim=c(-1,1),
+       xaxt="n",lwd="2") #xaxt="n" do not display x axis while yaxt="n" means do not display y axis
+  label_ccf<-seq(-10,10,by=1)
+  label_ccf<-c(-13,label_ccf,13)
+  axis(1,at=label_ccf,label=label_ccf,cex.axis=1)
+  
+  #plot(ccf_obj,type="b",axes=false)
+  #axis(1,at=lag_m,label=lag_m)
+  
+  savePlot(paste(list_fig_MEOT[[k]][[3]],"_",out_prefix,".tiff", sep=""), type="tiff")  
+  
+}
 
 #################### PART 5: Generate barplots of cross-correlation figures ##############
 
