@@ -390,7 +390,6 @@ plot_lag_components(1,lf=meot1_lf,
 test_lf <- lapply(1:20,FUN=plot_lag_components,lf=meot1_lf,lag_window = lag_window, r_mask = r_mask,z_range=z_range,out_suffix=out_suffix,out_dir=out_dir,name_lf=names_stack_lf)
 #/home/bparmentier/Dropbox/Data/MEOT_paper/MSSA_paper/Data_paper/MEOT_working_dir_10232012/MEOT10232011/anom_sst_1982_2007/components
 
-
 #### MSSA 1: 1982-2007
 
 names_stack_lf <- paste0("MSSA",1:no_comp)
@@ -404,43 +403,31 @@ plot_lag_components(1,lf=mssa1_lf,lag_window = lag_window, r_mask = r_mask,z_ran
 test_lf <- lapply(1:20,FUN=plot_lag_components,lf=mssa1_lf,lag_window = lag_window, r_mask = r_mask,z_range=z_range,out_suffix=out_suffix,out_dir=out_dir,name_lf=names_stack_lf)
 
 
+#################### PART 4: Generate temporal profiles patterns figures ##############
 
+
+#################### PART 5: Generate barplots of cross-correlation figures ##############
 
 ### Old data: meot and mssa comparison of cross corr with teleconnection indices
 
 ### Select quadrature and generate the cross-corr
 
+#Do this for MEOT1-MEOT3,MEOT7-MEOT16,MEOT10-MEOT15
+
+#subset()
 out_suffix_str <- paste0("meot_mssa_old",out_suffix)
 lf_barplot_comparison <- generate_barplot_comparison_fun(
   df1=cross_lag_telind_mssa1_obj$extremum,
   df2=cross_lag_telind_meot_obj$extremum,out_suffix=out_suffix_str,
   col_palette=NULL,out_dir=NULL)
 
+#Do this for MSSA1-MSSA3,MSSA7-MSSA8,MSSA13-MSSA14,MSSA16-MSSA17
+
 out_suffix_str <- paste0("meot_mssa_old",out_suffix)
 lf_barplot_comparison <- generate_barplot_comparison_fun(
   df1=cross_lag_telind_mssa1_obj$extremum,
   df2=cross_lag_telind_meot_obj$extremum,out_suffix=out_suffix_str,
   col_palette=NULL,out_dir=NULL)
 
-### New data: meot and mssa comparison of cross corr with teleconnection indices
-
-#out_suffix_str <- paste0("meot_mssa_new_1982_2015_",out_suffix)
-#lf_barplot_comparison <- generate_barplot_comparison_fun(
-#  df1=cross_lag_telind_mssa3_obj$extremum,
-#  df2=cross_lag_telind_meot3_obj$extremum,
-#  out_suffix=out_suffix_str,
-#  col_palette=NULL,out_dir=NULL)
-
-### New data: meot-meot comparison to find quadratures
-
-#out_suffix_str <- paste0("test_meot_meot_new_1982_2015_",out_suffix)
-#lf_barplot_comparison <- generate_barplot_comparison_fun(
-#  df1=cross_lag_telind_meot3_obj$extremum,
-#  df2=cross_lag_telind_meot3_obj$extremum,
-#  out_suffix=out_suffix_str,
-#  col_palette=NULL,out_dir=NULL)
-
-
-
-```
+########################## END OF SCRIPT #########################
 
