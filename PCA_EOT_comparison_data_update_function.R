@@ -7,7 +7,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/15/2016 
-#DATE MODIFIED: 09/28/2016
+#DATE MODIFIED: 09/29/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #COMMIT: adding combine plot to time series profiles and cross-correlation function
@@ -287,7 +287,7 @@ cor_series_fun <- function(ts1,ts2,fig=F,out_suffix){
   
 }
 
-plot_time_series_and_ccf <- function(temp_names,data_dz=old_indices_dat_dz,dates_val=idx,lag_window=NULL,out_dir="./",out_suffix=""){
+plot_time_series_and_ccf <- function(temp_names,data_dz=old_indices_dat_dz,dates_val,y_label=NULL,lag_window=NULL,out_dir="./",out_suffix=""){
   #This is a quick function to generate plots of temporal profiles and ccf profiles
   
   #Needs to be improve later, works for the time being!!!
@@ -323,7 +323,11 @@ plot_time_series_and_ccf <- function(temp_names,data_dz=old_indices_dat_dz,dates
   
   png(png_file_name_temporal_profiles,width=col_mfrow*res_pix_x,height=row_mfrow*res_pix_y)
   
-  plot(ya,type="l",col="blue",ylim=y_range,axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
+  if(is.null(y_label)){
+    y_label <- paste(Var_a, "and", Var_b,"lag analysis",sep=" ")
+  }
+
+  plot(ya,type="l",col="blue",ylim=y_range,axes=FALSE,ylab=y_label,xlab="Time (month)")
   lines(yb,tybe="b",lty="dashed",lwd=1.2,col="darkgreen",axes=FALSE)
   
   #breaks_lab <- seq(1,312,by=12)
