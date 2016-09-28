@@ -8,7 +8,7 @@
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
-# COMMIT: modifying size of figures for plotting time series profiles and cross-correlation in function
+# COMMIT: testing combine plot for time series and barplot figures
 #
 
 ##################################################################################################
@@ -42,7 +42,7 @@ library(lubridate)
 ###### Functions  used in the script  ##########
 
 infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-                             "PCA_EOT_comparison_data_update_function_09282016.R")
+                             "PCA_EOT_comparison_data_update_function_09282016c.R")
 source(infile1_function)
 
 
@@ -133,6 +133,7 @@ path<-"/home/bparmentier/Google Drive/Papers_writing_MEOT/MEOT_analyses_02202015
 
 #telind <- c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOsm","QBO")
 telind <- c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMOunsm","QBO","Nino3.4","Modoki","Glob_LOT")
+telind_rename <- c("PNA","NAO","TNA","TSA","SAOD","MEI","PDO","AO","AAO","AMM","AMO","QBO","Nino3.4","Modoki","Glob_LOT")
 
 ########################################################
 ##############  Start of th script  ##############
@@ -316,14 +317,14 @@ colSums((test_extremum2))
 
 mode_list <- paste0("MEOT",1:20)
 out_suffix_str <- paste0("meot_old_1982_2007_",out_suffix)
-cross_lag_telind_meot_obj <- crosscor_lag_analysis_fun(telind,
+cross_lag_telind_meot1_obj <- crosscor_lag_analysis_fun(telind,
                                   mode_list,
                                   d_z=old_indices_dat_dz,
                                   lag_window=lag_window,
                                   fig=F,
                                   out_suffix=out_suffix_str)
 
-cross_lag_telind_meot_obj$extremum
+cross_lag_telind_meot1_obj$extremum
 
 ### Compare MEOT1 with MEOT1 and in cross-correlation to find quadratures
 #using old indices to check the results
@@ -418,10 +419,6 @@ dat <- old_indices_dat_dz
 idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')  #Create a date object for labels...
 datelabels<-as.character(1:length(idx))
 
-infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-                              "PCA_EOT_comparison_data_update_function_09282016.R")
-source(infile1_function)
-
 #debug(plot_time_series_and_ccf)
 #list_files_temp_profiles <- plot_time_series_and_ccf(temp_names=list_temp_profiles_MEOT[1],
 #                                                     data_dz=old_indices_dat_dz,
@@ -444,7 +441,7 @@ list_files_temp_profiles <- lapply(list_temp_profiles_MEOT,
 
 names_comp <- paste("comp_",1:20,sep="")
 names_MSSA <- paste("MSSA",1:20,sep="")
-#rename_values <- paste(names_comp,"=",names_MSSA,sep="")
+rename_values <- paste(names_comp,"=",names_MSSA,sep="")
 #rename_values <- paste(rename_values,collapse=",")
 dat_subset <-subset(dat_dz,select=names_comp)
 #rename(dat_subset,rename_values)
@@ -457,6 +454,14 @@ list_temp_profiles_MSSA <- c("MSSA1,MSSA3",
                              "MSSA16,MSSA17")
 
 #debug(plot_time_series_and_ccf)
+#list_files_temp_profiles <- lapply(list_temp_profiles_MSSA[1],
+#                                   FUN=plot_time_series_and_ccf,
+#                                   data_dz=dat_subset,
+#                                   dates_val=idx,
+#                                   lag_window=lag_window,
+#                                   out_dir=out_dir,
+#                                   out_suffix=out_suffix)
+#debug(plot_time_series_and_ccf)
 list_files_temp_profiles <- lapply(list_temp_profiles_MSSA,
                                    FUN=plot_time_series_and_ccf,
                                    data_dz=dat_subset,
@@ -465,14 +470,6 @@ list_files_temp_profiles <- lapply(list_temp_profiles_MSSA,
                                    out_dir=out_dir,
                                    out_suffix=out_suffix)
 
-#debug(plot_time_series_and_ccf)
-list_files_temp_profiles <- lapply(list_temp_profiles_MSSA[1],
-                                   FUN=plot_time_series_and_ccf,
-                                   data_dz=dat_subset,
-                                   dates_val=idx,
-                                   lag_window=lag_window,
-                                   out_dir=out_dir,
-                                   out_suffix=out_suffix)
 
 #################### PART 5: Generate barplots of cross-correlation figures ##############
 
@@ -482,19 +479,54 @@ list_files_temp_profiles <- lapply(list_temp_profiles_MSSA[1],
 
 #Do this for MEOT1-MEOT3,MEOT7-MEOT16,MEOT10-MEOT15
 
-#subset()
+#infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
+#                              "PCA_EOT_comparison_data_update_function_09282016c.R")
+#source(infile1_function)
+
+format_df_for_barplot <- function(df_table,names_col){
+  
+  df1_all <- df_table
+  #names(df1_all) <- names_MSSA
+  names(df1_all) <- names_col
+  rownames(df1_all) <-   telind_rename
+  
+  #Drop Modoki and Glob_LOT for this analysis
+  selected_row <- subset(df1_all,(rownames(df1_all) == "Nino3.4"))
+  remove_val <- c("Modoki","Glob_LOT","Nino3.4")
+  
+  df1 <- subset(df1_all,!(rownames(df1_all) %in% remove_val))
+  #test_df1 <- df1
+  df1[rownames(df1) == "MEI" ,] <- selected_row
+  #which(rownames(df1),"MEI")
+  pos <-match("MEI",rownames(df1))
+  rownames(df1)[pos]<- "Nino3.4"
+  
+  return(df1)
+}
+
+df1_all <- cross_lag_telind_mssa1_obj$extremum
+df1 <-format_df_for_barplot(df1_all,names_MSSA)
+
+df2_all <- cross_lag_telind_meot1_obj$extremum
+df2 <-format_df_for_barplot(df2_all,names_MSSA)
+
 out_suffix_str <- paste0("meot_mssa_old",out_suffix)
 lf_barplot_comparison <- generate_barplot_comparison_fun(
-  df1=cross_lag_telind_mssa1_obj$extremum,
-  df2=cross_lag_telind_meot_obj$extremum,out_suffix=out_suffix_str,
+  df1=df1,
+  df2=df2,
+  out_suffix=out_suffix_str,
   col_palette=NULL,out_dir=NULL)
 
 #Do this for MSSA1-MSSA3,MSSA7-MSSA8,MSSA13-MSSA14,MSSA16-MSSA17
 
-out_suffix_str <- paste0("meot_mssa_old",out_suffix)
+df1_q1<- subset(df1,select=c("MSSA1","MSSA7","MSSA13","MSSA16"))
+df1_q2 <- subset(df1,select=c("MSSA3","MSSA8","MSSA14","MSSA17"))
+
+out_suffix_str <- paste0("quadratures_mssa_mssa_old",out_suffix)
 lf_barplot_comparison <- generate_barplot_comparison_fun(
-  df1=cross_lag_telind_mssa1_obj$extremum,
-  df2=cross_lag_telind_meot_obj$extremum,out_suffix=out_suffix_str,
+  df1=df1_q1,
+  df2=df1_q2,
+  out_suffix=out_suffix_str,
   col_palette=NULL,out_dir=NULL)
 
 ########################## END OF SCRIPT #########################
