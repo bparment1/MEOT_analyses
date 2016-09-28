@@ -466,7 +466,11 @@ generate_barplot_comparison_fun <- function(df1,df2,out_suffix,col_palette=NULL,
     barplot(heights,     #data to plot
             main=paste(names_ref1," and ",names_ref2,sep=""),
             #main= names_ref,
-            names.arg=names_ind,cex.names=0.8,   #names of the teleconnections indices and size of fonts of axis labes
+            #srt       = 45,
+            #adj       = 1,
+            #xpd = TRUE,
+            las=2,
+            names.arg=names_ind,cex.names=0.7,   #names of the teleconnections indices and size of fonts of axis labes
             beside=TRUE,                         # see two barplots for comparisons...
             xlab="Teleconnection Indices",       # font.lab is 2 to make the font bold
             ylab="Correlation",font.lab=2,
