@@ -7,9 +7,10 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/15/2016 
-#DATE MODIFIED: 07/30/2016
+#DATE MODIFIED: 09/28/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
+#COMMIT: adding combine plot to time series profiles and cross-correlation function
 #
 ##################################################################################################
 #
@@ -381,7 +382,56 @@ plot_time_series_and_ccf <- function(temp_names,data_dz=old_indices_dat_dz,dates
   #axis(1,at=lag_m,label=lag_m)
   dev.off()
   
+  ##################
   ### Combine figures now?
+  
+  
+  res_pix_x <- 600 #it will be time 2
+  res_pix_y <- 400
+  col_mfrow <- 1
+  row_mfrow <- 2
+  
+  png_file_name_temporal_combined <- file.path(out_dir,
+                                               paste("Figure_paper_time_series_combined_profiles_cross_correlation","_",Var_a,"_",Var_b,"_",out_suffix,".png",sep=""))
+  
+  png(png_file_name_temporal_combined,width=col_mfrow*res_pix_x,height=row_mfrow*res_pix_y)
+  
+  par(mfrow=c(row_mfrow,col_mfrow))
+  
+  #Plot1: Time series temporal profiles
+  
+  plot(ya,type="l",col="blue",ylim=y_range,axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
+  lines(yb,tybe="b",lty="dashed",lwd=1.2,col="darkgreen",axes=FALSE)
+  
+  #breaks_lab <- seq(1,312,by=12)
+  breaks_lab <- seq(1,length(ya)+12,by=12)
+  axis(side=2)
+  #axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
+  axis(side=1,las=1,
+       at=breaks_lab,labels=datelabels, cex=1.5) #reduce number of labels to Jan and June
+  box()
+  
+  #legend("topleft",legend=c(Var_a,Var_b), cex=0.8, col=c("blue","darkgreen"),
+  #         lty=c(1,2),lwd=2)  #lwd=line width
+  
+  
+  legend("topright",legend=c(Var_a,Var_b), cex=0.8, col=c("blue","darkgreen"),
+         lty=c(1,2),lwd=2)  #lwd=line width
+  
+  title(paste("Temporal profiles for", Var_a, "and", Var_b,sep=" "))
+  
+  ###Now plot2
+  
+  plot(ccf_obj, main= paste(Var_a, "and", Var_b,"lag analysis",sep=" "), ylab="Cross-correlation",
+       xlab="Lag (month)", ylim=c(-1,1),
+       xaxt="n",lwd="2") #xaxt="n" do not display x axis while yaxt="n" means do not display y axis
+  label_ccf<-seq(-10,10,by=1)
+  label_ccf<-c(-13,label_ccf,13)
+  axis(1,at=label_ccf,label=label_ccf,cex.axis=1)
+  
+  dev.off()
+  
+  
   
   list_file_names <- c(png_file_name_temporal_profiles, png_file_name_crosscor)
   return(list_file_names)
