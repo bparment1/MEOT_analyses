@@ -425,7 +425,6 @@ list_temp_profiles <- c("MEOT1,MEOT3",
                       "MSSA1,MSSA14",
                       "MSSA16,MSSA17")
 
-
 dat <- old_indices_dat_dz
 dat_subset<-subset(dat,select=MEOT_quadratures)
 
@@ -433,20 +432,18 @@ idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')  #Create
 datelabels<-as.character(1:length(idx))
 
 
-
-#MSSA_quadratures<-c("MSSA1","MSSA3")
-#dat_subset<-subset(dat,select=MSSA_quadratures)
-
-X11(width=10,height=14)
-par(mfrow=c(2,1))
-
-list_quadratures <- strsplit(MEOT_quadratures,",")
-
-#for (k in 1:4){
-plot_multipel_temporal_profiles <- function(temp_names,data_dz=old_indices_dat_dz,dates_val=idx,lag_window=NULL){
+debug(plot_time_series_and_ccf)
+list_files_temp_profiles <- plot_time_series_and_ccf(temp_names,
+                                                     data_dz=old_indices_dat_dz,
+                                                     dates_val=idx,
+                                                     lag_window=lag_window,
+                                                     out_dir=out_dir,
+                                                     out_suffix=out_suffix)
+  
+plot_time_series_and_ccf <- function(temp_names,data_dz=old_indices_dat_dz,dates_val=idx,lag_window=NULL,out_dir="./",out_suffix=""){
   #This is a quick function to generate plots of temporal profiles and ccf profiles
   
-  #Needs to be improve later!!!
+  #Needs to be improve later, works for the time being!!!
   
   ###Start script ###
   
@@ -463,21 +460,20 @@ plot_multipel_temporal_profiles <- function(temp_names,data_dz=old_indices_dat_d
   Var_a <- variables_name[1]
   Var_b <- variables_name[2]
   
-  #Var_a<- list_fig_MEOT[[k]][[1]]
-  #Var_b<- list_fig_MEOT[[k]][[2]]
-  #if (MEOTb=="MSSA3"){
-  #  dat_subset[[MEOTb]]<-dat_subset[[MEOTb]]*-1
-  #}
-  #dat_subset <- as.data.frame(subset(data_dz,select=c(Var_a,Var_b)))
-  
   dat_subset <- subset(data_dz,select=c(Var_a,Var_b))
   y_range<- range(as.numeric(dat_subset))
   #y_range<-range(dat_subset[[Var_a]],dat_subset[[Var_b]])
   ya <- as.numeric(subset(dat_subset,select=Var_a))
   yb <- as.numeric(subset(dat_subset,select=Var_b))
   
+  png_file_name_temporal_profiles <- file.path(out_dir,
+                                      paste("Figure_paper_time_series_profiles","_",Var_a,"_",Var_b,"_",out_suffix,".png",sep=""))
+  
+  png(png_file_name_temporal_profiles)
+  
   plot(ya,type="l",col="blue",ylim=y_range,axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
   lines(yb,tybe="b",lty="dashed",lwd=1.2,col="darkgreen",axes=FALSE)
+  length(ya)
   breaks_lab <- seq(1,312,by=12)
   axis(side=2)
   #axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
@@ -494,7 +490,7 @@ plot_multipel_temporal_profiles <- function(temp_names,data_dz=old_indices_dat_d
   
   title(paste("Temporal profiles for", Var_a, "and", Var_b,sep=" "))
   
-  #file_name <-
+  dev.off()
   
   ###Figure 2: cross correlation
   
@@ -503,6 +499,7 @@ plot_multipel_temporal_profiles <- function(temp_names,data_dz=old_indices_dat_d
   }else{
     lag_window_val <- lag_window
   }
+  
   pos1 <- match(Var_a,names(data_dz))
   pos2 <- match(Var_b,names(data_dz))
 
@@ -516,6 +513,12 @@ plot_multipel_temporal_profiles <- function(temp_names,data_dz=old_indices_dat_d
   #plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
   #     xlab="Lag (month)", ylim=c(-1,1))
   
+
+  png_file_name_crosscor <- file.path(out_dir,
+                             paste("Figure_paper_time_series_cross_correlation_",Var_a,"_",Var_b,"_lag_window_",lag_window_val,"_",out_suffix,".png",sep=""))
+  
+  png(png_file_name_crosscor)
+  
   plot(ccf_obj, main= paste(Var_a, "and", Var_b,"lag analysis",sep=" "), ylab="Cross-correlation",
        xlab="Lag (month)", ylim=c(-1,1),
        xaxt="n",lwd="2") #xaxt="n" do not display x axis while yaxt="n" means do not display y axis
@@ -525,16 +528,15 @@ plot_multipel_temporal_profiles <- function(temp_names,data_dz=old_indices_dat_d
   
   #plot(ccf_obj,type="b",axes=false)
   #axis(1,at=lag_m,label=lag_m)
+  dev.off()
   
-  file_name <- paste(list_fig_MEOT[[k]][[3]],"_",out_prefix,".tiff", sep="")
-  savePlot(file_name , type="tiff")  
-  
-  return(file_name)
+  list_file_names <- c(png_file_name_temporal_profiles, png_file_name_crosscor)
+  return(list_file_names)
 }
 
 #################### PART 5: Generate barplots of cross-correlation figures ##############
 
-### Old data: meot and mssa comparison of cross corr with teleconnection indices
+### meot and mssa comparison of cross corr with teleconnection indices
 
 ### Select quadrature and generate the cross-corr
 
