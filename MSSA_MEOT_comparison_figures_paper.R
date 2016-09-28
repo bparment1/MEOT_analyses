@@ -4,11 +4,11 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:09/25/2016 
-#DATE MODIFIED: 09/27/2016
+#DATE MODIFIED: 09/28/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
-# COMMIT: moved function plotting time series profiles and cross-correlation to function script
+# COMMIT: modifying size of figures for plotting time series profiles and cross-correlation in function
 #
 
 ##################################################################################################
@@ -42,7 +42,7 @@ library(lubridate)
 ###### Functions  used in the script  ##########
 
 infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-                             "PCA_EOT_comparison_data_update_function_09272016.R")
+                             "PCA_EOT_comparison_data_update_function_09282016.R")
 source(infile1_function)
 
 
@@ -364,10 +364,6 @@ plot(r_mask)
 #plot(r_SST_m,y=1:12)
 #levelplot(r_SST_m)
 
-infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-                              "PCA_EOT_comparison_data_update_function_09252016.R")
-source(infile1_function)
-
 #### MEOT 1: 1982-2007
 #temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
 names_stack_lf <- paste0("MEOT",1:no_comp)
@@ -413,28 +409,70 @@ test_lf <- lapply(1:20,FUN=plot_lag_components,lf=mssa1_lf,lag_window = lag_wind
 MEOT_quadratures <- c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15","MSSA1","MSSA3","MSSA7-MSSA8","MSSA13-MSSA14","MSSA16-MSSA17")
 
 ## can also have options for three indices together
-list_temp_profiles <- c("MEOT1,MEOT3",
-                      "MEOT7,MEOT16",
-                      "MEOT10,MEOT15",
-                      "MSSA1,MSSA3",
-                      "MSSA7,MSSA8",
-                      "MSSA1,MSSA14",
-                      "MSSA16,MSSA17")
+list_temp_profiles_MEOT <- c("MEOT1,MEOT3",
+                             "MEOT7,MEOT16",
+                             "MEOT10,MEOT15")
 
 dat <- old_indices_dat_dz
-dat_subset<-subset(dat,select=MEOT_quadratures)
 
 idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')  #Create a date object for labels...
 datelabels<-as.character(1:length(idx))
 
+infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
+                              "PCA_EOT_comparison_data_update_function_09282016.R")
+source(infile1_function)
+
 #debug(plot_time_series_and_ccf)
-list_files_temp_profiles <- plot_time_series_and_ccf(temp_names=list_temp_profiles[1],
-                                                     data_dz=old_indices_dat_dz,
-                                                     dates_val=idx,
-                                                     lag_window=lag_window,
-                                                     out_dir=out_dir,
-                                                     out_suffix=out_suffix)
+#list_files_temp_profiles <- plot_time_series_and_ccf(temp_names=list_temp_profiles_MEOT[1],
+#                                                     data_dz=old_indices_dat_dz,
+#                                                     dates_val=idx,
+#                                                     lag_window=lag_window,
+#                                                    out_dir=out_dir,
+#                                                     out_suffix=out_suffix)
   
+#debug(plot_time_series_and_ccf)
+list_files_temp_profiles <- lapply(list_temp_profiles_MEOT,
+                                   FUN=plot_time_series_and_ccf,
+                                   data_dz=old_indices_dat_dz,
+                                   dates_val=idx,
+                                   lag_window=lag_window,
+                                   out_dir=out_dir,
+                                   out_suffix=out_suffix)
+
+
+####### Generate MSSA figures
+
+names_comp <- paste("comp_",1:20,sep="")
+names_MSSA <- paste("MSSA",1:20,sep="")
+#rename_values <- paste(names_comp,"=",names_MSSA,sep="")
+#rename_values <- paste(rename_values,collapse=",")
+dat_subset <-subset(dat_dz,select=names_comp)
+#rename(dat_subset,rename_values)
+names(dat_subset) <- names_MSSA
+
+#rename(d, c("beta"="two", "gamma"="three"))
+list_temp_profiles_MSSA <- c("MSSA1,MSSA3",
+                             "MSSA7,MSSA8",
+                             "MSSA13,MSSA14",
+                             "MSSA16,MSSA17")
+
+#debug(plot_time_series_and_ccf)
+list_files_temp_profiles <- lapply(list_temp_profiles_MSSA,
+                                   FUN=plot_time_series_and_ccf,
+                                   data_dz=dat_subset,
+                                   dates_val=idx,
+                                   lag_window=lag_window,
+                                   out_dir=out_dir,
+                                   out_suffix=out_suffix)
+
+#debug(plot_time_series_and_ccf)
+list_files_temp_profiles <- lapply(list_temp_profiles_MSSA[1],
+                                   FUN=plot_time_series_and_ccf,
+                                   data_dz=dat_subset,
+                                   dates_val=idx,
+                                   lag_window=lag_window,
+                                   out_dir=out_dir,
+                                   out_suffix=out_suffix)
 
 #################### PART 5: Generate barplots of cross-correlation figures ##############
 
