@@ -8,6 +8,9 @@
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
+# COMMIT: moved function plotting time series profiles and cross-correlation to function script
+#
+
 ##################################################################################################
 #
 ###Loading r library and packages
@@ -39,7 +42,7 @@ library(lubridate)
 ###### Functions  used in the script  ##########
 
 infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-                             "PCA_EOT_comparison_data_update_function_09252016.R")
+                             "PCA_EOT_comparison_data_update_function_09272016.R")
 source(infile1_function)
 
 
@@ -405,13 +408,6 @@ test_lf <- lapply(1:20,FUN=plot_lag_components,lf=mssa1_lf,lag_window = lag_wind
 
 #################### PART 4: Generate temporal profiles patterns figures ##############
 
-#idx <- seq(as.Date('1982-01-15'), as.Date('2006-12-15'), by='month')
-list_fig_MEOT<-vector("list",4)
-list_fig_MEOT[[1]]<- c("MEOT1","MEOT3","Figure_4_paper_MEOT1_MEOT3_temporal_sequence_pattern")
-list_fig_MEOT[[2]]<- c("MEOT7","MEOT16","Figure_7_paper_MEOT7_MEOT16_temporal_sequence_pattern")
-list_fig_MEOT[[3]]<- c("MEOT10","MEOT15","Figure_10_paper_MEOT10_MEOT15_temporal_sequence_pattern")
-list_fig_MEOT[[4]]<- c("MSSA1","MSSA3","Figure_13_paper_MSSA1_MSSA3_temporal_sequence_pattern")
-
 ##Define the pairs
 #MEOT_quadratures<-c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15","MSSA1","MSSA3")
 MEOT_quadratures <- c("MEOT1","MEOT3","MEOT7","MEOT16","MEOT10","MEOT15","MSSA1","MSSA3","MSSA7-MSSA8","MSSA13-MSSA14","MSSA16-MSSA17")
@@ -431,108 +427,14 @@ dat_subset<-subset(dat,select=MEOT_quadratures)
 idx <- seq(as.Date('1982-01-15'), as.Date('2007-12-15'), by='12 month')  #Create a date object for labels...
 datelabels<-as.character(1:length(idx))
 
-
-debug(plot_time_series_and_ccf)
-list_files_temp_profiles <- plot_time_series_and_ccf(temp_names,
+#debug(plot_time_series_and_ccf)
+list_files_temp_profiles <- plot_time_series_and_ccf(temp_names=list_temp_profiles[1],
                                                      data_dz=old_indices_dat_dz,
                                                      dates_val=idx,
                                                      lag_window=lag_window,
                                                      out_dir=out_dir,
                                                      out_suffix=out_suffix)
   
-plot_time_series_and_ccf <- function(temp_names,data_dz=old_indices_dat_dz,dates_val=idx,lag_window=NULL,out_dir="./",out_suffix=""){
-  #This is a quick function to generate plots of temporal profiles and ccf profiles
-  
-  #Needs to be improve later, works for the time being!!!
-  
-  ###Start script ###
-  
-  ## First get the date label
-  for (i in 1:length(idx)){
-    date_proc<-idx[i]
-    month<-strftime(date_proc, "%b")          # extract current month of the date being processed
-    day<-strftime(date_proc, "%d")
-    year<-strftime(date_proc, "%y")  #Use y instead of Y for 2 digits
-    datelabels[i]<-paste(year,sep="")
-  }
-  
-  variables_name <- unlist(strsplit(temp_names,","))
-  Var_a <- variables_name[1]
-  Var_b <- variables_name[2]
-  
-  dat_subset <- subset(data_dz,select=c(Var_a,Var_b))
-  y_range<- range(as.numeric(dat_subset))
-  #y_range<-range(dat_subset[[Var_a]],dat_subset[[Var_b]])
-  ya <- as.numeric(subset(dat_subset,select=Var_a))
-  yb <- as.numeric(subset(dat_subset,select=Var_b))
-  
-  png_file_name_temporal_profiles <- file.path(out_dir,
-                                      paste("Figure_paper_time_series_profiles","_",Var_a,"_",Var_b,"_",out_suffix,".png",sep=""))
-  
-  png(png_file_name_temporal_profiles)
-  
-  plot(ya,type="l",col="blue",ylim=y_range,axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
-  lines(yb,tybe="b",lty="dashed",lwd=1.2,col="darkgreen",axes=FALSE)
-  length(ya)
-  breaks_lab <- seq(1,312,by=12)
-  axis(side=2)
-  #axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
-  axis(side=1,las=1,
-       at=breaks_lab,labels=datelabels, cex=1.5) #reduce number of labels to Jan and June
-  box()
-  
-  #legend("topleft",legend=c(Var_a,Var_b), cex=0.8, col=c("blue","darkgreen"),
-  #         lty=c(1,2),lwd=2)  #lwd=line width
-  
-  
-  legend("topright",legend=c(Var_a,Var_b), cex=0.8, col=c("blue","darkgreen"),
-           lty=c(1,2),lwd=2)  #lwd=line width
-  
-  title(paste("Temporal profiles for", Var_a, "and", Var_b,sep=" "))
-  
-  dev.off()
-  
-  ###Figure 2: cross correlation
-  
-  if(is.null(lag_window)){
-    lag_window_val <- 13
-  }else{
-    lag_window_val <- lag_window
-  }
-  
-  pos1 <- match(Var_a,names(data_dz))
-  pos2 <- match(Var_b,names(data_dz))
-
-  ccf_obj<-ccf(as.numeric(data_dz[,pos1]),as.numeric(data_dz[,pos2]), lag=lag_window_val,plot=FALSE)  #Note that ccf does not take
-  lag_m<-seq(-1*lag_window,lag_window,1)
-  ccf_obj$lag[,1,1]<-lag_m  #replacign lag values because continuous
-  
-  #X11(type="cairo") #Cairo because it is macos...?
-  #plot_name<-paste("crosscorrelation", MEOTa, "and", MEOTb,"lag_analysis",sep="_")#replace by list fig naem
-  #png(paste(plot_name,"_",out_prefix,".png", sep=""))
-  #plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
-  #     xlab="Lag (month)", ylim=c(-1,1))
-  
-
-  png_file_name_crosscor <- file.path(out_dir,
-                             paste("Figure_paper_time_series_cross_correlation_",Var_a,"_",Var_b,"_lag_window_",lag_window_val,"_",out_suffix,".png",sep=""))
-  
-  png(png_file_name_crosscor)
-  
-  plot(ccf_obj, main= paste(Var_a, "and", Var_b,"lag analysis",sep=" "), ylab="Cross-correlation",
-       xlab="Lag (month)", ylim=c(-1,1),
-       xaxt="n",lwd="2") #xaxt="n" do not display x axis while yaxt="n" means do not display y axis
-  label_ccf<-seq(-10,10,by=1)
-  label_ccf<-c(-13,label_ccf,13)
-  axis(1,at=label_ccf,label=label_ccf,cex.axis=1)
-  
-  #plot(ccf_obj,type="b",axes=false)
-  #axis(1,at=lag_m,label=lag_m)
-  dev.off()
-  
-  list_file_names <- c(png_file_name_temporal_profiles, png_file_name_crosscor)
-  return(list_file_names)
-}
 
 #################### PART 5: Generate barplots of cross-correlation figures ##############
 
