@@ -312,15 +312,21 @@ plot_time_series_and_ccf <- function(temp_names,data_dz=old_indices_dat_dz,dates
   ya <- as.numeric(subset(dat_subset,select=Var_a))
   yb <- as.numeric(subset(dat_subset,select=Var_b))
   
+  res_pix_x <- 600 #it will be time 2
+  res_pix_y <- 400
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
   png_file_name_temporal_profiles <- file.path(out_dir,
                                                paste("Figure_paper_time_series_profiles","_",Var_a,"_",Var_b,"_",out_suffix,".png",sep=""))
   
-  png(png_file_name_temporal_profiles)
+  png(png_file_name_temporal_profiles,width=col_mfrow*res_pix_x,height=row_mfrow*res_pix_y)
   
   plot(ya,type="l",col="blue",ylim=y_range,axes=FALSE,ylab="MEOT mode",xlab="Time (month)")
   lines(yb,tybe="b",lty="dashed",lwd=1.2,col="darkgreen",axes=FALSE)
-  length(ya)
-  breaks_lab <- seq(1,312,by=12)
+  
+  #breaks_lab <- seq(1,312,by=12)
+  breaks_lab <- seq(1,length(ya)+12,by=12)
   axis(side=2)
   #axis(1,at=breaks_lab, labels=datelabels) #reduce number of labels to Jan and June
   axis(side=1,las=1,
@@ -353,17 +359,16 @@ plot_time_series_and_ccf <- function(temp_names,data_dz=old_indices_dat_dz,dates
   lag_m<-seq(-1*lag_window,lag_window,1)
   ccf_obj$lag[,1,1]<-lag_m  #replacign lag values because continuous
   
-  #X11(type="cairo") #Cairo because it is macos...?
-  #plot_name<-paste("crosscorrelation", MEOTa, "and", MEOTb,"lag_analysis",sep="_")#replace by list fig naem
-  #png(paste(plot_name,"_",out_prefix,".png", sep=""))
-  #plot(ccf_obj, main= paste(telindex, "and", mode_n,"lag analysis",sep=" "), ylab="Cross-correlation",
-  #     xlab="Lag (month)", ylim=c(-1,1))
-  
+  res_pix_x <- 600 #it will be time 2
+  res_pix_y <- 400
+  col_mfrow <- 1
+  row_mfrow <- 1
   
   png_file_name_crosscor <- file.path(out_dir,
                                       paste("Figure_paper_time_series_cross_correlation_",Var_a,"_",Var_b,"_lag_window_",lag_window_val,"_",out_suffix,".png",sep=""))
+
   
-  png(png_file_name_crosscor)
+  png(png_file_name_crosscor,width=col_mfrow*res_pix_x,height=row_mfrow*res_pix_y)
   
   plot(ccf_obj, main= paste(Var_a, "and", Var_b,"lag analysis",sep=" "), ylab="Cross-correlation",
        xlab="Lag (month)", ylim=c(-1,1),
@@ -375,6 +380,8 @@ plot_time_series_and_ccf <- function(temp_names,data_dz=old_indices_dat_dz,dates
   #plot(ccf_obj,type="b",axes=false)
   #axis(1,at=lag_m,label=lag_m)
   dev.off()
+  
+  ### Combine figures now?
   
   list_file_names <- c(png_file_name_temporal_profiles, png_file_name_crosscor)
   return(list_file_names)
