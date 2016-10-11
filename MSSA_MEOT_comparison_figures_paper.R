@@ -4,11 +4,11 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:09/25/2016 
-#DATE MODIFIED: 09/28/2016
+#DATE MODIFIED: 10/11/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
-# COMMIT: testing combine plot for time series and barplot figures
+# COMMIT: regenerate barplot figures for MEOTs quadratures
 #
 
 ##################################################################################################
@@ -42,7 +42,7 @@ library(lubridate)
 ###### Functions  used in the script  ##########
 
 infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-                             "PCA_EOT_comparison_data_update_function_09282016c.R")
+                             "PCA_EOT_comparison_data_update_function_10112016.R")
 source(infile1_function)
 
 
@@ -58,7 +58,7 @@ NA_value <- -9999 #PARAM5
 NA_value_SST <- 32767
 NA_flag_val <- NA_value #PARAM6
 
-out_suffix <- "_figures_mssa_meot_comp_anom_09252016"
+out_suffix <- "_figures_mssa_meot_comp_anom_10112016"
 create_out_dir_param=TRUE #PARAM8
 num_cores <- 4 #PARAM 9
 
@@ -373,9 +373,8 @@ i<-1
 #undebug(plot_lag_components)
 #out_suffix_str <- 
 z_range <- c(-1,1)
-
 temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
-title_plot_<-paste(name_stack , "spatial sequence",sep=" ")
+title_plot <-paste(names_stack_lf , "spatial sequence",sep=" ")
 
 plot_lag_components(1,lf=meot1_lf,
                     lag_window = lag_window, 
@@ -389,6 +388,47 @@ plot_lag_components(1,lf=meot1_lf,
 
 test_lf <- lapply(1:20,FUN=plot_lag_components,lf=meot1_lf,lag_window = lag_window, r_mask = r_mask,z_range=z_range,out_suffix=out_suffix,out_dir=out_dir,name_lf=names_stack_lf)
 #/home/bparmentier/Dropbox/Data/MEOT_paper/MSSA_paper/Data_paper/MEOT_working_dir_10232012/MEOT10232011/anom_sst_1982_2007/components
+
+title_plot <-paste(names_stack_lf[[1]] , "spatial sequence",sep=" ")
+
+#par(mfrow=c(row_mfrow,col_mfrow))
+#layout=c(3, 2)
+layout_m <- c(col_mfrow,row_mfrow)
+
+r_s <- stack(meot1_lf[[1]])
+p_test1 <- levelplot(r_s,main=title_plot, layout=layout_m,
+              ylab=NULL,xlab=NULL,
+              par.settings = list(axis.text = list(font = 2, cex = 1.5),
+                                  par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+              #col.regions=temp.colors,at=seq(-1,1,by=0.02))
+              col.regions=temp.colors,at=seq(z_range[1],z_range[2],by=0.02))
+r_s <- stack(meot1_lf[[3]])
+title_plot <-paste(names_stack_lf[[3]] , "spatial sequence",sep=" ")
+
+p_test2 <- levelplot(r_s,main=title_plot, layout=layout_m,
+                     ylab=NULL,xlab=NULL,
+                     par.settings = list(axis.text = list(font = 2, cex = 1.5),
+                                         par.main.text=list(font=2,cex=2.2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+                     #col.regions=temp.colors,at=seq(-1,1,by=0.02))
+                     col.regions=temp.colors,at=seq(z_range[1],z_range[2],by=0.02))
+
+p_combined_MEOT1_MEOT3 <- c(MEOT1=p_test1,MEOT3=p_test2)
+
+
+res_pix <- 600 #it will be time 2
+res_pix <- 500
+col_mfrow <- 4
+row_mfrow <- 4
+
+#png_file_name <- file.path(out_dir,paste0("figure_spatial_pattern_levelplot_stack_",name_stack,"_comp_",i,out_suffix,".png"))
+#png(png_file_name,width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+png_file_name <- "meot1_meot3_test_combined_spatial_pattern.png"
+
+png(png_file_name,width=col_mfrow*res_pix,height=row_mfrow*res_pix*2)
+
+print(p_combined_MEOT1_MEOT3)
+dev.off()
+#The combined plot works but need to find out how to keep the titles!!!
 
 #### MSSA 1: 1982-2007
 
@@ -483,39 +523,22 @@ list_files_temp_profiles <- lapply(list_temp_profiles_MSSA,
 #                              "PCA_EOT_comparison_data_update_function_09282016c.R")
 #source(infile1_function)
 
-format_df_for_barplot <- function(df_table,names_col){
-  
-  df1_all <- df_table
-  #names(df1_all) <- names_MSSA
-  names(df1_all) <- names_col
-  rownames(df1_all) <-   telind_rename
-  
-  #Drop Modoki and Glob_LOT for this analysis
-  selected_row <- subset(df1_all,(rownames(df1_all) == "Nino3.4"))
-  remove_val <- c("Modoki","Glob_LOT","Nino3.4")
-  
-  df1 <- subset(df1_all,!(rownames(df1_all) %in% remove_val))
-  #test_df1 <- df1
-  df1[rownames(df1) == "MEI" ,] <- selected_row
-  #which(rownames(df1),"MEI")
-  pos <-match("MEI",rownames(df1))
-  rownames(df1)[pos]<- "Nino3.4"
-  
-  return(df1)
-}
+names_MSSA <- paste("MSSA",1:20,sep="")
 
 df1_all <- cross_lag_telind_mssa1_obj$extremum
 df1 <-format_df_for_barplot(df1_all,names_MSSA)
 
-df2_all <- cross_lag_telind_meot1_obj$extremum
-df2 <-format_df_for_barplot(df2_all,names_MSSA)
+names_MEOT <- paste("MEOT",1:20,sep="")
 
-out_suffix_str <- paste0("meot_mssa_old",out_suffix)
-lf_barplot_comparison <- generate_barplot_comparison_fun(
-  df1=df1,
-  df2=df2,
-  out_suffix=out_suffix_str,
-  col_palette=NULL,out_dir=NULL)
+df2_all <- cross_lag_telind_meot1_obj$extremum
+df2 <-format_df_for_barplot(df2_all,names_MEOT)
+
+#out_suffix_str <- paste0("meot_mssa_old",out_suffix)
+#lf_barplot_comparison <- generate_barplot_comparison_fun(
+#  df1=df1,
+#  df2=df2,
+#  out_suffix=out_suffix_str,
+#  col_palette=NULL,out_dir=NULL)
 
 #Do this for MSSA1-MSSA3,MSSA7-MSSA8,MSSA13-MSSA14,MSSA16-MSSA17
 
@@ -526,6 +549,18 @@ out_suffix_str <- paste0("quadratures_mssa_mssa_old",out_suffix)
 lf_barplot_comparison <- generate_barplot_comparison_fun(
   df1=df1_q1,
   df2=df1_q2,
+  out_suffix=out_suffix_str,
+  col_palette=NULL,out_dir=NULL)
+
+#Do this for MEOT1-MEOT3,MEOT7-MEOT16,MEOT10-MEOT15
+
+df2_q1<- subset(df2,select=c("MEOT1","MEOT7","MEOT10"))
+df2_q2 <- subset(df2,select=c("MEOT3","MEOT16","MEOT15"))
+
+out_suffix_str <- paste0("quadratures_meot_meot_old",out_suffix)
+lf_barplot_comparison <- generate_barplot_comparison_fun(
+  df1=df2_q1,
+  df2=df2_q2,
   out_suffix=out_suffix_str,
   col_palette=NULL,out_dir=NULL)
 
