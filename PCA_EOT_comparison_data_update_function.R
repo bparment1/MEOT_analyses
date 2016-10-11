@@ -7,10 +7,10 @@
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/15/2016 
-#DATE MODIFIED: 09/29/2016
+#DATE MODIFIED: 10/11/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
-#COMMIT: adding combine plot to time series profiles and cross-correlation function
+#COMMIT: adding barplot function and testing for MEOT quadratures
 #
 ##################################################################################################
 #
@@ -533,6 +533,27 @@ plot_lag_components <- function(i,lf,lag_window,r_mask,z_range,out_suffix,out_di
   dev.off()
   
   return(png_file_name)
+}
+
+format_df_for_barplot <- function(df_table,names_col){
+  
+  df1_all <- df_table
+  #names(df1_all) <- names_MSSA
+  names(df1_all) <- names_col
+  rownames(df1_all) <-   telind_rename
+  
+  #Drop Modoki and Glob_LOT for this analysis
+  selected_row <- subset(df1_all,(rownames(df1_all) == "Nino3.4"))
+  remove_val <- c("Modoki","Glob_LOT","Nino3.4")
+  
+  df1 <- subset(df1_all,!(rownames(df1_all) %in% remove_val))
+  #test_df1 <- df1
+  df1[rownames(df1) == "MEI" ,] <- selected_row
+  #which(rownames(df1),"MEI")
+  pos <-match("MEI",rownames(df1))
+  rownames(df1)[pos]<- "Nino3.4"
+  
+  return(df1)
 }
 
 ########################## END OF SCRIPT #########################
