@@ -1,14 +1,14 @@
 #################################    MEOT AND MSSA Paper  #######################################
 ########################### SPACE-TIME VARIABILITY  #############################################
-#This script examines generates figures to compare MEOT and MSSA results for the paper.
+#This script generates figures and tables to compare MEOT and MSSA results for the paper.
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:09/25/2016 
-#DATE MODIFIED: 10/11/2016
+#DATE MODIFIED: 12/31/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
 #
-# COMMIT: regenerate barplot figures for MEOTs quadratures
+# COMMIT: updating cross-correlation tables for paper revisions MEOT using 2 digits
 #
 
 ##################################################################################################
@@ -42,7 +42,7 @@ library(lubridate)
 ###### Functions  used in the script  ##########
 
 infile1_function <- file.path("/home/bparmentier/Google Drive/Papers_writing_MEOT/R_scripts/",
-                             "PCA_EOT_comparison_data_update_function_10112016.R")
+                             "PCA_EOT_comparison_data_update_function_12312016.R")
 source(infile1_function)
 
 
@@ -58,7 +58,7 @@ NA_value <- -9999 #PARAM5
 NA_value_SST <- 32767
 NA_flag_val <- NA_value #PARAM6
 
-out_suffix <- "_figures_mssa_meot_comp_anom_10112016"
+out_suffix <- "_figures_mssa_meot_comp_anom_12312016"
 create_out_dir_param=TRUE #PARAM8
 num_cores <- 4 #PARAM 9
 
@@ -66,6 +66,7 @@ lag_window <- 13
 years_to_process <- 1982:2007
 var_name <- "sst" #PARAM 14, Name of variable of interest: bacteria measurement (DMR data)
 #scaling <- 1/0.0099999998
+rounding_val <- 2
 
 r_mask_filename <- "/home/bparmentier/Google Drive/Papers_writing_MEOT/EOT_paper/data/lsmasked_0_180.rst"
 
@@ -273,6 +274,7 @@ cross_lag_telind_mssa1_obj <- crosscor_lag_analysis_fun(telind,
                                    d_z=dat_dz,
                                    lag_window=lag_window,
                                    fig=F,
+                                   rouding_val=rouding_val,
                                    out_suffix=out_suffix_str)
 cross_lag_telind_mssa1_obj$extremum #use this output to examine results?
 cross_lag_telind_mssa1_obj$text
@@ -296,6 +298,7 @@ cross_lag_corr_mssa1_mssa1_obj <- crosscor_lag_analysis_fun(mode_list,
                                    d_z=dat_dz,
                                    lag_window=lag_window,
                                    fig=F,
+                                   rouding_val=rounding_val,
                                    out_suffix=out_suffix_str)
 
 cross_lag_corr_mssa1_mssa1_obj$extremum #use this output to examine results?
@@ -322,6 +325,7 @@ cross_lag_telind_meot1_obj <- crosscor_lag_analysis_fun(telind,
                                   d_z=old_indices_dat_dz,
                                   lag_window=lag_window,
                                   fig=F,
+                                  rouding_val=rounding_val,
                                   out_suffix=out_suffix_str)
 
 cross_lag_telind_meot1_obj$extremum
@@ -338,6 +342,7 @@ cross_lag_corr_meot1_meot1_obj <- crosscor_lag_analysis_fun(mode_list,
                                    d_z=old_indices_dat_dz,
                                    lag_window=lag_window,
                                    fig=F,
+                                   rouding_val=rounding_val,
                                    out_suffix=out_suffix_str)
 
 cross_lag_corr_meot1_meot1_obj$extremum #use this output to examine results?
