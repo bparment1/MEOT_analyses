@@ -1,16 +1,14 @@
 #################################    EOT AND PCA ROTATION  #######################################
 ########################### SPACE-TIME VARIABILITY  #############################################
-#This script examines the 1982-2016 dataset downloaded from NOAA:
-#http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.html
-#
-#The goal is to run EOT, MEOT and PCA on the updated SST dataset using the IDRISI and the R package "remote".
+#This script provides a set of function for analyes and comparison of space-time decomposition technique.
+#Some functions use outputs from IDRISI softwares. Future functions will also use the "remote" R package.
 #
 #AUTHOR: Benoit Parmentier                                                                       #
 #DATE CREATED:07/15/2016 
-#DATE MODIFIED: 10/11/2016
+#DATE MODIFIED: 12/31/2016
 #
 #PROJECT: MEOT/EOT climate variability extraction
-#COMMIT: adding barplot function and testing for MEOT quadratures
+#COMMIT: changing rouding number for table creation in paper
 #
 ##################################################################################################
 #
@@ -70,7 +68,7 @@ convert_to_numeric <-function(x){
 }
 
 
-crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suffix){
+crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,rouding_val=3,out_suffix=""){
   #This function crosss correlates between two sets of time series given some lag window.
   #The inputs are time series objects of the type zoo.
   #
@@ -80,12 +78,13 @@ crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suff
   #3)d_z: zoo object 
   #4)lag_window:
   #5)fig: TRUE or FALSE, if TRUE generate crossorrrelation figure
+  #6)rounding_val: default to 3, number of digit to keep in crosscor formatting
   #6)out_suffix
   ##AUTHOR: Benoit Parmentier                                                                       #
   #DATE CREATED:12/15/2013 
-  #DATE MODIFIED: 07/29/2016
+  #DATE MODIFIED: 12/31/2016
   ###Comments
-  ### Last update on 07/29/2016, this needs improvement!!
+  ### Last update on 12/31/2016, this needs improvement!!
   
   lag_table_ext<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
   lag_table_lag<-matrix(data=NA,nrow=length(telind),ncol=length(mode_list))
@@ -132,7 +131,7 @@ crosscor_lag_analysis_fun<-function(telind,mode_list,d_z,lag_window,fig,out_suff
       lag_table_ext[i,j]<-absext
       lag_table_lag[i,j]<-absext_lag
       #number<-format(absext,digits=3)
-      ext<-round(absext,digits=3)
+      ext<-round(absext,digits=rounding_val)
       element<-paste(ext," (",absext_lag,")",sep="")
       lag_table_text[i,j]<-element
       
